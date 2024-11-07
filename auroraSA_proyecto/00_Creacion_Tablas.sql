@@ -30,6 +30,7 @@ GO
 ------------------------------------------------Tablas------------------------------------------------
 ---Esquema Direccion:
 --		Tabla Direccion:
+/*
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Direccion')
 BEGIN
 	CREATE TABLE Direccion.Direccion
@@ -49,6 +50,7 @@ BEGIN
 	)--CK = Check
 END;
 GO
+*/
 --Esquema Sucursal:
 --		Tabla Sucursal
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Sucursal')
@@ -57,15 +59,18 @@ BEGIN
 	(
 		idSucursal INT IDENTITY(1,1),
 		telefono VARCHAR(9) NOT NULL,
-		idDireccion INT,
+		localidad varchar(50),
+		codPostal varchar(10),
+		direccion varchar(100),
 		horario VARCHAR(100) NOT NULL,
+		sucursalActiva bit NOT NULL,
 		CONSTRAINT PK_Sucursal PRIMARY KEY(idSucursal),
-		CONSTRAINT FK_Sucursal_Direccion FOREIGN KEY(IDDireccion) REFERENCES Direccion.Direccion(idDireccion),
 		CONSTRAINT CK_Sucursal_Telefono CHECK(telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]')
 	)
 END;
 GO
 --		Tabla Turnos de los Empleados
+/*
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Turno')
 BEGIN
 	CREATE TABLE Sucursal.Turno
@@ -76,13 +81,14 @@ BEGIN
 	)
 END;
 GO
+*/
 --		Tabla Cargo de los Empleados
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Cargo')
 BEGIN
 	CREATE TABLE Sucursal.Cargo
 	(
 		idCargo INT IDENTITY(1,1),
-		nombreCargo VARCHAR(50) NOT NULL,
+		nombreCargo VARCHAR(30) NOT NULL,
 		CONSTRAINT PK_Cargo PRIMARY KEY(idCargo)
 	)
 END;
@@ -94,25 +100,29 @@ BEGIN
 	CREATE TABLE Empleado.Empleado
 	(
 		legajo INT IDENTITY(257020,1),
-		dni VARCHAR(8) NOT NULL,
-		cuil VARCHAR(13) NOT NULL,
+		dni char(8) NOT NULL,
+		cuil char(13) NOT NULL,
 		nombre VARCHAR(50) NOT NULL,
 		apellido VARCHAR(50) NOT NULL,
-		emailPersonal VARCHAR(100) NULL,
-		emailEmpresarial VARCHAR(100) NOT NULL,
-		idDireccion INT,
+		emailPersonal VARCHAR(60) NULL,
+		emailEmpresarial VARCHAR(60) NOT NULL,
+		localidad varchar(50),
+		codPostal varchar(10),
+		direccion varchar(100),
+		turno char(3),
+		empleadoActivo bit NOT NULL,
 		idSucursal INT,
-		idTurno INT,
 		idCargo INT,
 		CONSTRAINT PK_Legajo PRIMARY KEY(legajo),
-		CONSTRAINT FK_Empleado_Direccion FOREIGN KEY(idDireccion) REFERENCES Direccion.Direccion(idDireccion),
 		CONSTRAINT FK_Empleado_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal),
-		CONSTRAINT FK_Empleado_Turno FOREIGN KEY(idTurno) REFERENCES Sucursal.Turno(idTurno),
 		CONSTRAINT FK_Empleado_Cargo FOREIGN KEY(idCargo) REFERENCES Sucursal.Cargo(idCargo),
 		CONSTRAINT CK_Empleado_DNI CHECK(dni LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
 		CONSTRAINT CK_Empleado_CUIL CHECK(cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
-		CONSTRAINT CK_Empleado_EmailPersonal CHECK(emailPersonal like '%@%.com'),
-		CONSTRAINT CK_Empleado_EmailEmpresarial CHECK(emailEmpresarial LIKE '%@superA.com')
+		-- correccion antes CK_Empleado_EmailPersonal CHECK(emailPersonal like '%@%.com')
+		CONSTRAINT CK_Empleado_EmailPersonal CHECK(emailPersonal like '%_@__%.__%'),
+		-- CK_Empleado_EmailEmpresarial CHECK(emailEmpresarial LIKE '%@superA.com')
+		CONSTRAINT CK_Empleado_EmailEmpresarial CHECK(emailEmpresarial LIKE '%_@__%.__%'),
+		CONSTRAINT CK_Empleado_turno CHECK(turno in('T-T', 'T-M' ,'COM'))
 	)
 END;
 GO
@@ -135,7 +145,7 @@ BEGIN
 	(
 		idProducto INT IDENTITY(1,1),
 		idTipoDeProducto INT,
-		descripcionProducto VARCHAR(150) NOT NULL,
+		descripcionProducto VARCHAR(100) NOT NULL,
 		precioUnitario DECIMAL(15,2)  NOT NULL,
 		precioReferencia DECIMAL(15,2)  NULL,
 		unidadReferencia VARCHAR(10) NULL,
@@ -155,13 +165,14 @@ BEGIN
 	CREATE TABLE Factura.MedioDePago
 	(
 		idMedioDePago INT IDENTITY(1,1),
-		nombreMedioDePago VARCHAR(50) NOT NULL,
+		nombreMedioDePago VARCHAR(12) NOT NULL,
 		descripcion VARCHAR(50) NULL,
 		CONSTRAINT PK_MedioDePago PRIMARY KEY(idMedioDePago)
 	);
 END;
 GO
 --		Tabla Factura
+
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Factura')
 BEGIN
 	CREATE TABLE Factura.Factura
@@ -169,10 +180,8 @@ BEGIN
 		idFactura INT IDENTITY(1,1),
 		tipoFactura CHAR NOT NULL,
 		tipoCliente VARCHAR(10) NOT NULL,
-		genero VARCHAR(10) NOT NULL,
-		cantidad SMALLINT NOT NULL,
+		genero VARCHAR(10) NOT NULL,--corregir <-- sacar esta wea
 		fechaHora SMALLDATETIME NOT NULL,
-		idProducto INT,
 		idMedioDepago INT,
 		legajo INT,
 		idSucursal INT,
@@ -184,9 +193,23 @@ BEGIN
 		CONSTRAINT CK_Factura_TipoFactura CHECK(tipoFactura IN ('A', 'B', 'C')),
 		CONSTRAINT CK_Factura_TipoCliente CHECK(tipoCliente IN('Normal', 'Member')), 
 		CONSTRAINT CK_Factura_Genero CHECK(genero IN('Male', 'Female')),
-		CONSTRAINT FK_Factura_Producto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
-		CONSTRAINT CK_Factura_CantidadProductos CHECK(cantidad > 0)
+		
 --		CONSTRAINT CK_Factura_IdentificadorDepago CHECK() <-- ¿Solo aceptan 3 tipos de pago? Efectivo,tarjeta y ewallet
 	)
 END;
 GO
+
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'DetalleFactura')
+BEGIN--Esto se agrega de nuevo
+	CREATE TABLE Factura.DetalleFactura
+	(
+		idFactura INT,
+		idDetalleFactura INT IDENTITY(1,1),
+		precioUnitario DECIMAL(10,2) NOT NULL,
+		idProducto INT,
+		cantidad SMALLINT NOT NULL,
+		CONSTRAINT FK_DetalleFactura_Factura FOREIGN KEY(idFactura) REFERENCES Factura.Factura(idFactura),
+		CONSTRAINT CK_Factura_CantidadProductos CHECK(cantidad > 0)		,
+		CONSTRAINT FK_Factura_Producto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto)
+	)
+END
