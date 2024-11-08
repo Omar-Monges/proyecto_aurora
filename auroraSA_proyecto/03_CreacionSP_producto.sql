@@ -6,6 +6,23 @@ ELSE
 GO
 --  USE master
 --DROP DATABASE G2900G19
+/*
+	
+--Esquema Producto
+	Tabla Producto
+		agregarProducto
+		modificarProducto
+		eliminarProducto
+
+		pasajeDolarAPesos
+
+		verProductos ->muestra a los productos con sus categorias
+	Tabla TipoDeProducto
+		agregarTipoDeProducto
+		modificarTipoDeProducto
+		eliminarTipoDeProducto
+*/
+
 ------------------------------------------------Producto------------------------------------------------
 --Tabla Producto
 --Procedimiento almacenado que permite agregar un producto

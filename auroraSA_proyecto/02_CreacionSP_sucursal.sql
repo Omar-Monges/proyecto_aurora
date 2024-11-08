@@ -6,7 +6,28 @@ ELSE
 GO
 --  USE master
 --DROP DATABASE G2900G19
+/*
+--Esquema Sucursal
+	Tabla Sucursal	
+		agregarSucursal
+		modificarSucursal
+		eliminarSucursal
 
+		verSucursales
+		verEmpleadosDeSucursales
+	Tabla Cargo
+		agregarCargo X
+		modificarCargo X 
+		eliminarCargo X
+
+		verCargosDeEmpleados
+	Tabla Turno
+		agregarTurno
+		modificarTurno
+		eliminarTurno
+
+		verTurnosDeEmpleados
+*/
 
 ------------------------------------------------Esquema Sucursal------------------------------------------------
 --Tabla Sucursal
@@ -16,8 +37,7 @@ CREATE OR ALTER PROCEDURE Sucursal.agregarSucursal (@telefono VARCHAR(9),@horari
 													@calle VARCHAR(255),@numeroDeCalle SMALLINT,@codPostal VARCHAR(255),
 													@localidad VARCHAR(255),@provincia VARCHAR(255))
 AS BEGIN
-	DECLARE @idDireccion INT;
-
+	DECLARE @altaSucursal BIT = 1;
 	IF(LEN(LTRIM(@horario)) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarSucursal. El horario es inválido.',16,2);
@@ -51,11 +71,15 @@ AS BEGIN
 	BEGIN TRY
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 		BEGIN TRANSACTION;
+		/*
 		INSERT INTO Direccion.Direccion (calle,numeroDeCalle,codigoPostal,localidad,provincia) 
 				VALUES (@calle,@numeroDeCalle,@codPostal,@localidad,@provincia);
 		SET @idDireccion = (SELECT TOP(1) idDireccion FROM Direccion.Direccion ORDER BY idDireccion DESC);
-		INSERT INTO Sucursal.Sucursal (telefono,horario,idDireccion)
-				VALUES (@telefono,@horario,@idDireccion);
+		*/
+		DECLARE @direccion varchar(max);
+		SET @direccion = @calle + ',' + @numeroDeCalle + ',' + @provincia;
+		INSERT INTO Sucursal.Sucursal (telefono,horario,codPostal,sucursalActiva,direccion,localidad)
+				VALUES (@telefono,@horario,@codPostal, @altaSucursal, @direccion,@localidad);
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH
@@ -275,7 +299,6 @@ GO
 --	DROP VIEW Sucursal.verTurnosDeEmpleados
 --	SELECT * FROM Sucursal.verTurnosDeEmpleados
 CREATE OR ALTER VIEW Sucursal.verTurnosDeEmpleados AS
-	SELECT e.legajo,e.cuil,e.apellido,e.nombre,t.nombreTurno 
-			FROM Empleado.Empleado e JOIN Sucursal.Turno t
-			ON e.idTurno = t.idTurno;
+	SELECT e.legajo,e.cuil,e.apellido,e.nombre,e.turno 
+			FROM Empleado.Empleado e
 GO

@@ -171,6 +171,19 @@ BEGIN
 	);
 END;
 GO
+
+--		Tabla Tipo Cliente
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'TipoCliente')
+BEGIN--Esto se agrega de nuevo
+	CREATE TABLE Factura.TipoCliente
+	(
+		idTipoCliente SMALLINT IDENTITY(1,1),
+		tipoCliente char(6), -- Solo dos tipos MEMBER / NORMAL
+	    genero char(1), -- Solo H / M
+		CONSTRAINT PK_TipoCliente_Factura PRIMARY KEY (idTipoCliente),
+		CONSTRAINT CK_TipoCliente CHECK(tipoCliente in ('MEMBER', 'NORMAL'))
+	)
+END
 --		Tabla Factura
 
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Factura')
@@ -179,8 +192,8 @@ BEGIN
 	(
 		idFactura INT IDENTITY(1,1),
 		tipoFactura CHAR NOT NULL,
-		tipoCliente VARCHAR(10) NOT NULL,
-		genero VARCHAR(10) NOT NULL,--corregir <-- sacar esta wea
+		tipoCliente SMALLINT NOT NULL,
+		--genero VARCHAR(10) NOT NULL,--corregir <-- sacar esta wea
 		fechaHora SMALLDATETIME NOT NULL,
 		idMedioDepago INT,
 		legajo INT,
@@ -190,9 +203,9 @@ BEGIN
 		CONSTRAINT FK_Factura_MedioDePago FOREIGN KEY(idMedioDePago) REFERENCES Factura.MedioDePago(idMedioDePago),
 		CONSTRAINT FK_Factura_LegajoEmpleado FOREIGN KEY(legajo) REFERENCES Empleado.Empleado(legajo),
 		CONSTRAINT FK_Factura_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal),
+		CONSTRAINT FK_Factura_tipoCliente FOREIGN KEY(tipoCliente) REFERENCES Factura.TipoCliente(idTipoCliente),
 		CONSTRAINT CK_Factura_TipoFactura CHECK(tipoFactura IN ('A', 'B', 'C')),
-		CONSTRAINT CK_Factura_TipoCliente CHECK(tipoCliente IN('Normal', 'Member')), 
-		CONSTRAINT CK_Factura_Genero CHECK(genero IN('Male', 'Female')),
+		--CONSTRAINT CK_Factura_Genero CHECK(genero IN('Male', 'Female')),
 		
 --		CONSTRAINT CK_Factura_IdentificadorDepago CHECK() <-- ¿Solo aceptan 3 tipos de pago? Efectivo,tarjeta y ewallet
 	)

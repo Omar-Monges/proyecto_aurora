@@ -22,40 +22,6 @@
 	verDatosEmpleados -> vemos los datos de los empleados junto a su turno,cargo y sucursal en la que trabaja.
 	verDatosPersonalesDeEmpleados -> vemos los datos personales
 
---Esquema Sucursal
-	Tabla Sucursal	
-		agregarSucursal
-		modificarSucursal
-		eliminarSucursal
-
-		verSucursales
-		verEmpleadosDeSucursales
-	Tabla Cargo
-		agregarCargo X
-		modificarCargo X 
-		eliminarCargo X
-
-		verCargosDeEmpleados
-	Tabla Turno
-		agregarTurno
-		modificarTurno
-		eliminarTurno
-
-		verTurnosDeEmpleados
---Esquema Producto
-	Tabla Producto
-		agregarProducto
-		modificarProducto
-		eliminarProducto
-
-		pasajeDolarAPesos
-
-		verProductos ->muestra a los productos con sus categorias
-	Tabla TipoDeProducto
-		agregarTipoDeProducto
-		modificarTipoDeProducto
-		eliminarTipoDeProducto
-
 --Esquema Factura
 */
 IF EXISTS (SELECT * FROM sys.databases WHERE name = 'Com2900G19')
