@@ -96,7 +96,7 @@ CREATE OR ALTER PROCEDURE Sucursal.modificarSucursal (@idSucursal INT,@telefono 
 													@numeroDeCalle SMALLINT = NULL,@codPostal VARCHAR(255) = NULL,
 													@localidad VARCHAR(255) = NULL,@provincia VARCHAR(255) = NULL)
 AS BEGIN
-	DECLARE @idDireccionSucursal INT = NULL;
+	DECLARE @direccion VARCHAR(MAX) = NULL;
 
 	IF(LEN(LTRIM(@horario)) = 0)
 	BEGIN
@@ -127,23 +127,16 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado modificarSucursal. La provincia es inválida.',16,10);
 		RETURN;
 	END
-
-	SET @idDireccionSucursal = (SELECT idDireccion FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal);
-
+	SET @direccion = @calle + ', ' + @numeroDeCalle;
 	BEGIN TRY
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 		BEGIN TRANSACTION
-		UPDATE Direccion.Direccion
-			SET calle = COALESCE(@calle,calle),
-				numeroDeCalle = COALESCE(@numeroDeCalle,numeroDeCalle),
-				codigoPostal = COALESCE(@codPostal,codigoPostal),
-				localidad = COALESCE(@localidad,localidad),
-				provincia = COALESCE(@provincia,provincia)
-			WHERE idDireccion = @idDireccionSucursal;
 
 		UPDATE Sucursal.Sucursal
 			SET telefono = COALESCE(@telefono,telefono),
-				horario = COALESCE(@horario,horario)
+				horario = COALESCE(@horario,horario),
+				direccion = COALESCE(@direccion, direccion),
+				localidad = COALESCE(@localidad, localidad)
 			WHERE idSucursal = @idSucursal;
 		COMMIT TRANSACTION;
 	END TRY
@@ -157,32 +150,34 @@ GO
 --	DROP PROCEDURE Sucursal.eliminarSucursal
 CREATE OR ALTER PROCEDURE Sucursal.eliminarSucursal (@idSucursal INT)
 AS BEGIN
-	DECLARE @idDireccion INT;
+	--DECLARE @idDireccion INT;
 	--Buscamos idDireccion para eliminar la dirección de la sucursal
-	SET @idDireccion = (SELECT idDireccion FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal);
+	--SET @idDireccion = (SELECT idDireccion FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal);
 	
-	UPDATE Empleado.Empleado
-		SET idSucursal = NULL
-		WHERE idSucursal = @idSucursal;
+	--UPDATE Empleado.Empleado
+	--	SET idSucursal = NULL
+	--	WHERE idSucursal = @idSucursal;
 
-	UPDATE Factura.Factura
-		SET idSucursal = NULL
-		WHERE idSucursal = @idSucursal;
+	--UPDATE Factura.Factura
+	--	SET idSucursal = NULL
+	--	WHERE idSucursal = @idSucursal;
 
-	DELETE FROM Sucursal.Sucursal
-		WHERE idSucursal = @idSucursal;
+	--DELETE FROM Sucursal.Sucursal
+	--	WHERE idSucursal = @idSucursal;
 
-	DELETE FROM Direccion.Direccion
-		WHERE idDireccion = @idDireccion	
+	--DELETE FROM Direccion.Direccion
+	--	WHERE idDireccion = @idDireccion
+	UPDATE Sucursal.Sucursal
+		SET sucursalActiva = 0
+		WHERE idSucursal = @idSucursal;
 END
 GO
 --	Vista que permite ver la información de cada sucursal.
 --	DROP VIEW Sucursal.verDatosDeSucursales
 --	SELECT * FROM Sucursal.verDatosDeSucursales
 CREATE OR ALTER VIEW Sucursal.verDatosDeSucursales AS
-	SELECT s.idSucursal,s.horario,s.telefono,d.calle,d.numeroDeCalle,d.codigoPostal,d.localidad,d.provincia 
-		FROM Sucursal.Sucursal s JOIN Direccion.Direccion d
-		ON s.idDireccion = d.idDireccion;
+	SELECT s.idSucursal,s.horario,s.telefono,s.direccion,s.localidad
+		FROM Sucursal.Sucursal s
 GO 
 --	Vista que permite ver a los empleados de cada sucursal
 --	DROP VIEW Sucursal.verEmpleadosDeCadaSucursal
@@ -246,54 +241,6 @@ CREATE OR ALTER VIEW Sucursal.verCargoDeEmpleados AS
 	SELECT e.legajo,e.cuil,e.apellido,e.nombre,c.nombreCargo 
 		FROM Empleado.Empleado e JOIN Sucursal.Cargo c
 		ON e.idCargo = c.idCargo;
-GO
---Tabla Turno
---	Procedimiento almacenado que permite agregar un turno
---	DROP PROCEDURE Sucursal.agregarTurno
-CREATE OR ALTER PROCEDURE Sucursal.agregarTurno (@nombreTurno VARCHAR(255))
-AS BEGIN
-	IF EXISTS (SELECT 1 FROM Sucursal.Turno 
-					WHERE nombreTurno = @nombreTurno)
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado agregarTurno. El turno ya se encuentra ingresado',16,4);
-		RETURN;
-	END
-
-	IF (@nombreTurno IS NULL OR LEN(LTRIM(RTRIM(@nombreTurno))) = 0)
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado agregarTurno. El turno no es válido.',16,4);
-		RETURN;
-	END
-
-	INSERT INTO Sucursal.Turno (nombreTurno) VALUES (@nombreTurno);
-END
-GO
---	Procedimiento almacenado que permite modificar un turno
---	DROP PROCEDURE Sucursal.modificarTurno
-CREATE OR ALTER PROCEDURE Sucursal.modificarTurno (@idTurno INT, @nombreTurno VARCHAR(255))
-AS BEGIN
-	IF (@nombreTurno IS NULL OR LEN(LTRIM(@nombreTurno)) = 0)
-	BEGIN
-		RAISERROR ('Error en el procedimiemto almacenado modificarTurno.',16,13);
-		RETURN;
-	END
-
-	UPDATE Sucursal.Turno
-		SET nombreTurno = @nombreTurno
-		WHERE idTurno = @idTurno;
-END
-GO
---	Procedimiento almacenado qeu permite eliminar un turno
---	DROP PROCEDURE Sucursal.eliminarTurno
-CREATE OR ALTER PROCEDURE Sucursal.eliminarTurno (@idTurno INT)
-AS BEGIN
-	UPDATE Empleado.Empleado
-		SET idTurno = NULL
-		WHERE idTurno = @idTurno
-
-	DELETE FROM Sucursal.Turno 
-		WHERE idTurno = @idTurno;
-END
 GO
 --	Vista que permite ver los turnos que tiene cada empleado.
 --	DROP VIEW Sucursal.verTurnosDeEmpleados

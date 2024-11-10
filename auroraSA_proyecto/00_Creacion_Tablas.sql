@@ -192,7 +192,7 @@ BEGIN
 	(
 		idFactura INT IDENTITY(1,1),
 		tipoFactura CHAR NOT NULL,
-		tipoCliente SMALLINT NOT NULL,
+		idTipoCliente SMALLINT NOT NULL,
 		--genero VARCHAR(10) NOT NULL,--corregir <-- sacar esta wea
 		fechaHora SMALLDATETIME NOT NULL,
 		idMedioDepago INT,
@@ -203,7 +203,7 @@ BEGIN
 		CONSTRAINT FK_Factura_MedioDePago FOREIGN KEY(idMedioDePago) REFERENCES Factura.MedioDePago(idMedioDePago),
 		CONSTRAINT FK_Factura_LegajoEmpleado FOREIGN KEY(legajo) REFERENCES Empleado.Empleado(legajo),
 		CONSTRAINT FK_Factura_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal),
-		CONSTRAINT FK_Factura_tipoCliente FOREIGN KEY(tipoCliente) REFERENCES Factura.TipoCliente(idTipoCliente),
+		CONSTRAINT FK_Factura_tipoCliente FOREIGN KEY(idTipoCliente) REFERENCES Factura.TipoCliente(idTipoCliente),
 		CONSTRAINT CK_Factura_TipoFactura CHECK(tipoFactura IN ('A', 'B', 'C')),
 		--CONSTRAINT CK_Factura_Genero CHECK(genero IN('Male', 'Female')),
 		

@@ -161,23 +161,6 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato de la direccion es inválida.',16,1);
 		RETURN;
 	END;
-	
-/*
-		legajo INT IDENTITY(257020,1),
-		dni char(8) NOT NULL,
-		cuil char(13) NOT NULL,
-		nombre VARCHAR(50) NOT NULL,
-		apellido VARCHAR(50) NOT NULL,
-		emailPersonal VARCHAR(60) NULL,
-		emailEmpresarial VARCHAR(60) NOT NULL,
-		localidad varchar(50),
-		codPostal varchar(10),
-		direccion varchar(100),
-		turno char(3),
-		empleadoActivo bit,
-		idSucursal INT,
-		idCargo INT,
-*/
 	IF(@codPostal IS NULL)
 		EXEC Direccion.obtenerCodigoPostal @localidad, @codPostal OUTPUT;
 	BEGIN TRY
@@ -266,7 +249,7 @@ AS BEGIN
 	UPDATE Factura.Factura
 		SET legajo = NULL
 		WHERE legajo = @legajo
-	DELETE FROM Empleado.Empleado
+	DELETE FROM Empleado.Empleado	
 		WHERE legajo = @legajo;
 	*/
 	UPDATE Empleado.Empleado
