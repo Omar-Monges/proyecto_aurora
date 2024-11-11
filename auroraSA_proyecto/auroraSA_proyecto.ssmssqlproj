@@ -58,6 +58,24 @@
           <AssociatedConnUserName />
           <FullPath>05_Importaciones.sql</FullPath>
         </FileNode>
+        <FileNode Name="06_importar_productos.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-K4RCQ79\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-K4RCQ79\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>06_importar_productos.sql</FullPath>
+        </FileNode>
+        <FileNode Name="07_importar_empleados.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-K4RCQ79\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-K4RCQ79\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>07_importar_empleados.sql</FullPath>
+        </FileNode>
+        <FileNode Name="08_importar_ventas.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-K4RCQ79\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-K4RCQ79\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>08_importar_ventas.sql</FullPath>
+        </FileNode>
         <FileNode Name="LotesDePrueba1.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-K4RCQ79\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-K4RCQ79\SQLEXPRESS</AssociatedConnSrvName>

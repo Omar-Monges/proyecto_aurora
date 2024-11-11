@@ -134,7 +134,7 @@ AS BEGIN
 		VALUES (@idFactura, @idProducto, @precioUnitario, @cantidad)
 	
 END
-
+GO
 -----------------------Para modificar cantidad mas que nada--------------------------
 CREATE OR ALTER PROCEDURE Factura.modificarProducto(@idProducto INT = NULL, @cantidad INT = NULL)
 AS BEGIN
@@ -160,6 +160,7 @@ AS BEGIN
 		SET cantidad = @cantidad
 	WHERE idFactura = @idFactura AND idProducto = @idProducto
 END
+GO
 -----------------------Para eliminar un producto--------------------------
 CREATE OR ALTER PROCEDURE Factura.eliminarProducto(@idProducto INT = NULL)
 AS BEGIN

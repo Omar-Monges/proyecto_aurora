@@ -59,9 +59,10 @@ BEGIN
 	(
 		idSucursal INT IDENTITY(1,1),
 		telefono VARCHAR(9) NOT NULL,
-		localidad varchar(50),
-		codPostal varchar(10),
 		direccion varchar(100),
+		codPostal varchar(10),
+		localidad varchar(50),
+		provincia varchar(45),
 		horario VARCHAR(100) NOT NULL,
 		sucursalActiva bit NOT NULL,
 		CONSTRAINT PK_Sucursal PRIMARY KEY(idSucursal),
@@ -106,9 +107,10 @@ BEGIN
 		apellido VARCHAR(50) NOT NULL,
 		emailPersonal VARCHAR(60) NULL,
 		emailEmpresarial VARCHAR(60) NOT NULL,
-		localidad varchar(50),
-		codPostal varchar(10),
 		direccion varchar(100),
+		localidad varchar(50),
+		provinica varchar(45),
+		codPostal varchar(10),
 		turno char(3),
 		empleadoActivo bit NOT NULL,
 		idSucursal INT,
@@ -166,7 +168,6 @@ BEGIN
 	(
 		idMedioDePago INT IDENTITY(1,1),
 		nombreMedioDePago VARCHAR(12) NOT NULL,
-		descripcion VARCHAR(50) NULL,
 		CONSTRAINT PK_MedioDePago PRIMARY KEY(idMedioDePago)
 	);
 END;
