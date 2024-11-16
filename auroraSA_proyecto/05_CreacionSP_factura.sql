@@ -78,15 +78,16 @@ END
 
 GO
 /*
+	Solo una linea de caja :(
 		OPCION A
-		1. Creamos la tabla en memoria para productos
+		1. Creamos la tabla en memoria/temporal para productos
 		1.2 Si llama al proced
 		2. llamamos al procedimiento para agregar productos a la tabla
 		3. Cerramos la factura volcando la data en la base
 
 		OPCION B
 		1. crearFactura -> datos para la factura 
-		2. agregarProducto -> pasamos el idFactura -> funcion obtener la ultima idFactura // muchos productos
+		2. agregarProducto -> pasamos el idFactura -> obtener la ultima idFactura // muchos productos
 		3. sacarProducto 
 		4. modificarProducto
 		5. eliminarFactura -> Si se cancela la compra
@@ -180,5 +181,24 @@ AS BEGIN
 	DELETE FROM Factura.DetalleFactura
 		WHERE idProducto = @idProducto
 END
-
+GO
 --------------Eliminar factura de forma logica o no?
+
+CREATE OR ALTER PROCEDURE Factura.eliminarFactura(@idFactura INT = NULL)
+AS BEGIN
+	IF(@idFactura IS NULL)
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado agregarProducots. Factura no encontrada.',16,12);
+		RETURN;
+	END
+	-- Eliminamos el Factura
+	UPDATE Factura.Factura
+		SET idMedioDepago = NULL,
+			idTipoCliente = NULL,
+			legajo = NULL,
+			idSucursal = NULL
+		WHERE idFactura = @idFactura
+	DELETE FROM Factura.Factura
+		WHERE idFactura = @idFactura
+END
+GO

@@ -25,6 +25,7 @@
 --Esquema Factura
 */
 USE Com2900G19
+GO
 
 --  USE master
 --DROP DATABASE G2900G19
@@ -71,14 +72,14 @@ GO
 --Agregar un Empleado
 --Drop Empleado.agregarEmpleado
 CREATE OR ALTER PROCEDURE Empleado.agregarEmpleado (@dni VARCHAR(8), @nombre VARCHAR(50), @apellido VARCHAR(50),
-													@sexo CHAR, @emailPersonal VARCHAR(100)=NULL, @emailEmpresa VARCHAR(100),
-													@idSucursal INT, @idTurno INT,@idCargo INT, @calle VARCHAR(255),
+													@sexo CHAR, @emailPersonal VARCHAR(100), @emailEmpresa VARCHAR(100),
+													@idSucursal INT, @idTurno VARCHAR(20),@idCargo INT, @calle VARCHAR(255),
 													@numCalle SMALLINT, @codPostal VARCHAR(255), @localidad VARCHAR(255),
 													@provincia VARCHAR(255))
 AS BEGIN
-	DECLARE @cuil VARCHAR(13);
-	DECLARE @altaEmpleado bit = 1;
-
+	DECLARE @cuil VARCHAR(13)
+	DECLARE @altaEmpleado bit = 1
+	DECLARE @direccion VARCHAR(100)
 	IF(@dni IS NULL OR @dni NOT LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. EL formato del DNI es inválido.',16,1);
@@ -103,7 +104,7 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato de la direccion es inválida.',16,1);
 		RETURN;
 	END;
-
+	SET @direccion = @calle + ' ' + @numCalle
 	IF(@codPostal IS NULL)
 		EXEC Direccion.obtenerCodigoPostal @localidad, @codPostal OUTPUT;
 
@@ -112,8 +113,8 @@ AS BEGIN
 	SET @cuil = Empleado.calcularCUIL(@dni,@sexo);
 	SET @emailEmpresa = REPLACE(@emailEmpresa,' ','');
 	SET @emailPersonal = REPLACE(@emailPersonal,' ','');
-	INSERT INTO Empleado.Empleado(dni,nombre,apellido,emailPersonal,emailEmpresarial,idSucursal,turno,idCargo,cuil, empleadoActivo) 
-				VALUES(@dni,@nombre,@apellido,@emailPersonal,@emailEmpresa,@idSucursal,@idTurno,@idCargo,@cuil, @altaEmpleado);
+	INSERT INTO Empleado.Empleado(dni,nombre,apellido,emailPersonal,emailEmpresarial,direccion,localidad,provincia,idSucursal,turno,idCargo,cuil, empleadoActivo) 
+							VALUES(@dni,@nombre,@apellido,@emailPersonal,@emailEmpresa,@direccion,@localidad,@provincia,@idSucursal,@idTurno,@idCargo,@cuil, @altaEmpleado);
 
 END;
 GO
@@ -201,6 +202,7 @@ AS BEGIN
 		SET empleadoActivo = 0
 		WHERE legajo = @legajo
 END
+GO
 --Ver toda la tabla de empleados junto a su turno,cargo y sucursal en la que trabaja.
 --DROP VIEW Empleado.verEmpleados
 --		SELECT * FROM Empleado.verDatosDeEmpleados

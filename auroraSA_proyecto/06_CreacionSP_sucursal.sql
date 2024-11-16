@@ -70,11 +70,10 @@ AS BEGIN
 
 	IF(@codPostal IS NULL)
 	BEGIN
-		EXEC Direccion.calcularCodigoPostal @codPostal OUTPUT;
+		EXEC Direccion.obtenerCodigoPostal @localidad, @codPostal OUTPUT
 	END
-	LTRIM(RTRIM())
 	DECLARE @direccion varchar(100);
-	SET @direccion = LTRIM(RTRIM(@calle)) + ', ' + LTRIM(RTRIM(@numeroDeCalle ))+ ', ' + LTRIM(RTRIM(@provincia));
+	SET @direccion = LTRIM(RTRIM(@calle)) + ' ' + LTRIM(RTRIM(@numeroDeCalle));
 	INSERT INTO Sucursal.Sucursal (telefono,horario,codPostal,sucursalActiva,direccion,localidad,provincia)
 			VALUES (@telefono,@horario,@codPostal, @altaSucursal, @direccion,@localidad,@provincia);
 END
@@ -87,7 +86,6 @@ CREATE OR ALTER PROCEDURE Sucursal.modificarSucursal (@idSucursal INT,@telefono 
 													@localidad VARCHAR(255) = NULL,@provincia VARCHAR(255) = NULL)
 AS BEGIN
 	DECLARE @direccion VARCHAR(100) = NULL;
-	DECLARE @calle  
 
 	IF(LEN(LTRIM(@horario)) = 0)
 	BEGIN
@@ -119,7 +117,7 @@ AS BEGIN
 		RETURN;
 	END
 
-	SET @direccion = @calle + ', ' + @numeroDeCalle;
+	SET @direccion = @calle + ' ' + @numeroDeCalle;
 
 	UPDATE Sucursal.Sucursal
 		SET telefono = COALESCE(@telefono,telefono),

@@ -164,8 +164,7 @@ AS BEGIN
 	DROP TABLE #aux;
 	DROP TABLE #Catalogo;
 END;
-GO
-EXEC Producto.importarCatalogoCSV
+
 GO
 --------electronicos xlsx
 CREATE OR ALTER PROCEDURE Producto.importarProductosElectronicosXLSX (@ruta NVARCHAR(MAX))
