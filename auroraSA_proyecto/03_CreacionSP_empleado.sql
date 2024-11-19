@@ -1,13 +1,4 @@
 ﻿/*
---Lista Codigo de errores:
-	1 -> agregarEmpleado
-	2 -> agregarSucursal
-	3 -> agregarCargo
-	4 -> agregarTurno
-	5 -> agregarProducto
-	6 -> agregarTipoDeProducto
-*/
-/*
 --Esquema Dirección
 	verDireccionesDeEmpleados ->vemos las direcciones de los empleados
 	verDireccionesDeSucursales -> vemos las direcciones de las sucursales
@@ -35,6 +26,7 @@ GO
 --	DROP FUNCTION Empleado.calcularCUIL		<--- ¡Primero borrar el procedure agregarEmpleado!
 --	DROP PROCEDURE Empleado.agregarEmpleado
 --	PRINT Empleado.calcularCUIL('42781944','M')		<--- Salida esperada: 20-42781944-3
+-- PRINT Empleado.calcularCUIL('93113720', 'F')
 CREATE OR ALTER FUNCTION Empleado.calcularCUIL (@dni VARCHAR(8), @sexo CHAR)
 RETURNS VARCHAR(13)
 AS BEGIN
@@ -71,21 +63,20 @@ END
 GO
 --Agregar un Empleado
 --Drop Empleado.agregarEmpleado
-CREATE OR ALTER PROCEDURE Empleado.agregarEmpleado (@dni VARCHAR(8), @nombre VARCHAR(50), @apellido VARCHAR(50),
-													@sexo CHAR, @emailPersonal VARCHAR(100), @emailEmpresa VARCHAR(100),
-													@idSucursal INT, @idTurno VARCHAR(20),@idCargo INT, @calle VARCHAR(255),
-													@numCalle SMALLINT, @codPostal VARCHAR(255), @localidad VARCHAR(255),
-													@provincia VARCHAR(255))
+CREATE OR ALTER PROCEDURE Empleado.agregarEmpleado (
+								@dni VARCHAR(8)				= NULL, @nombre VARCHAR(50)			= NULL,
+								@apellido VARCHAR(50)		= NULL, @sexo CHAR					= NULL,
+								@emailPersonal VARCHAR(100)	= NULL, @emailEmpresa VARCHAR(100)	= NULL,
+								@idSucursal INT				= NULL, @turno VARCHAR(20)			= NULL,
+								@cargo VARCHAR(30)			= NULL, @direccion VARCHAR(100)		= NULL
+													)
 AS BEGIN
-	DECLARE @cuil VARCHAR(13)
-	DECLARE @altaEmpleado bit = 1
-	DECLARE @direccion VARCHAR(100)
+	DECLARE @cuil VARCHAR(13), @altaEmpleado BIT = 1, @idCargo INT
 	IF(@dni IS NULL OR @dni NOT LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. EL formato del DNI es inválido.',16,1);
 		RETURN;
 	END
-
 	IF (@nombre IS NULL OR LEN(LTRIM(@nombre)) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato del Nombre es inválido.',16,1);
@@ -97,78 +88,119 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato del Apellido es inválido.',16,1);
 		RETURN;
 	END;
-
-	IF (@calle IS NULL OR LEN(LTRIM(@calle)) = 0 OR @localidad IS NULL OR LEN(LTRIM(@localidad)) = 0 OR 
-		LEN(LTRIM(@codPostal)) = 0 OR @provincia IS NULL OR LEN(LTRIM(@provincia)) = 0)
+	IF (@direccion IS NULL OR LEN(LTRIM(@direccion)) = 0)
 	BEGIN
-		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato de la direccion es inválida.',16,1);
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato de la direccion es inválido.',16,1);
 		RETURN;
-	END;
-	SET @direccion = @calle + ' ' + @numCalle
-	IF(@codPostal IS NULL)
-		EXEC Direccion.obtenerCodigoPostal @localidad, @codPostal OUTPUT;
-
-	IF @codPostal IS NULL
-		SET @codPostal = COALESCE(@codPostal,'-');
+	END
+	IF (@emailPersonal IS NULL OR LEN(LTRIM(@emailPersonal)) = 0 OR @emailPersonal NOT LIKE '%_@__%.__%')
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email personal es inválido.',16,1);
+		RETURN;
+	END
+	IF (@emailEmpresa IS NULL OR LEN(LTRIM(@emailEmpresa)) = 0 OR @emailEmpresa NOT LIKE '%_@superA.com')
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email de empresa es inválido.',16,1);
+		RETURN;
+	END
+	IF (@idSucursal IS NULL OR NOT EXISTS(SELECT 1 FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal))
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. La sucursal es inválido.',16,1);
+		RETURN;
+	END
+	IF (@turno IS NULL OR LEN(LTRIM(@turno)) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El turno es inválido.',16,1);
+		RETURN;
+	END
+	IF (@cargo IS NULL OR LEN(LTRIM(@direccion)) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El cargo es inválido.',16,1);
+		RETURN;
+	END
+	IF NOT EXISTS(SELECT 1 FROM Sucursal.Cargo WHERE nombreCargo LIKE @cargo)
+	BEGIN
+		--El cargo no existe lo damos de alta?
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El cargo es inválido.',16,1);
+		RETURN;
+	END
+	SET @idCargo = (SELECT idCargo FROM Sucursal.Cargo WHERE nombreCargo = @cargo)
 	SET @cuil = Empleado.calcularCUIL(@dni,@sexo);
+
 	SET @emailEmpresa = REPLACE(@emailEmpresa,' ','');
 	SET @emailPersonal = REPLACE(@emailPersonal,' ','');
-	INSERT INTO Empleado.Empleado(dni,nombre,apellido,emailPersonal,emailEmpresarial,direccion,localidad,provincia,idSucursal,turno,idCargo,cuil, empleadoActivo) 
-							VALUES(@dni,@nombre,@apellido,@emailPersonal,@emailEmpresa,@direccion,@localidad,@provincia,@idSucursal,@idTurno,@idCargo,@cuil, @altaEmpleado);
+	IF EXISTS(SELECT 1 FROM Empleado.Empleado WHERE dni = @dni AND cuil = @cuil AND empleadoActivo = 0)
+	BEGIN
+		-- El empleado existe y lo damos de alta
+		--DECLARE @id INT = (SELECT idEmpleado FROM Empleado.Empleado WHERE dni = @dni AND cuil = @cuil)
+		UPDATE Empleado.Empleado
+			SET empleadoActivo = @altaEmpleado,
+				nombre = @nombre,
+				apellido = @apellido,
+				emailPersonal = @emailPersonal,
+				emailEmpresarial = @emailEmpresa,
+				direccion = @direccion,
+				idSucursal = @idSucursal,
+				turno = @turno,
+				idCargo = @idCargo
+		WHERE dni = @dni AND cuil = @cuil
+		RETURN
+	END
+	INSERT INTO Empleado.Empleado(dni,nombre,apellido,emailPersonal,emailEmpresarial,direccion,idSucursal,turno,idCargo,cuil, empleadoActivo) 
+							VALUES(@dni,@nombre,@apellido,@emailPersonal,@emailEmpresa,@direccion,@idSucursal,@turno,@idCargo,@cuil, @altaEmpleado);
 
 END;
 GO
 ---Modificar Empleado
 --DROP PROCEDURE Empleado.modificarEmpleado
-CREATE OR ALTER PROCEDURE Empleado.modificarEmpleado(@legajo INT, @nombre VARCHAR(255), @apellido VARCHAR(255) = NULL,
-													@emailPersonal VARCHAR(60)=NULL, @emailEmpresarial VARCHAR(60)=NULL, @turno char(20)=NULL,
-													@idCargo INT = NULL, @direccion varchar(100), @codPostal varchar(10) = NULL, @localidad VARCHAR(50) = NULL,
-													@provincia VARCHAR(50) = NULL)
+CREATE OR ALTER PROCEDURE Empleado.modificarEmpleado(
+									@idEmpleado INT				= NULL, @legajo INT						= NULL,
+									@nombre VARCHAR(255)		= NULL, @apellido VARCHAR(255)			= NULL,
+									@emailPersonal VARCHAR(60)	= NULL, @emailEmpresa VARCHAR(60)		= NULL,
+									@turno CHAR(20)				= NULL, @idCargo INT					= NULL,
+									@direccion VARCHAR(100)		= NULL, @dni VARCHAR(8)					= NULL,
+									@idSucursal INT				= NULL
+													)
 AS BEGIN
+	IF(@dni IS NOT NULL AND @dni NOT LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. EL formato del DNI es inválido.',16,1);
+		RETURN;
+	END
+	IF (@nombre IS NOT NULL AND LEN(LTRIM(@nombre)) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato del Nombre es inválido.',16,1);
+		RETURN;
+	END;
 
-	IF (LEN(LTRIM(@nombre)) = 0)
+	IF (@apellido IS NOT NULL AND LEN(LTRIM(@apellido)) = 0)
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado modificarEmpleado. Los datos del empleados son inválidos.',16,9);
-		RETURN
-	END
-	IF (LEN(LTRIM(@apellido)) = 0)
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato del Apellido es inválido.',16,1);
+		RETURN;
+	END;
+	IF (@direccion IS NOT NULL AND LEN(LTRIM(@direccion)) = 0)
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado modificarEmpleado. El apellido del empleados son inválidos.',16,9);
-		RETURN
-	END
-	IF (LEN(LTRIM(@turno)) = 0)
-	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado modificarEmpleado. Los datos del empleados son inválidos.',16,9);
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato de la direccion es inválido.',16,1);
 		RETURN;
 	END
-	IF (LEN(LTRIM(@localidad)) = 0)
+	IF (@emailPersonal IS NOT NULL AND LEN(LTRIM(@emailPersonal)) = 0)
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado modificarEmpleado. Los datos del empleados son inválidos.',16,9);
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email personal es inválido.',16,1);
 		RETURN;
 	END
-	IF(LEN(LTRIM(@provincia))  = 0)
+	IF (@emailEmpresa IS NOT NULL AND LEN(LTRIM(@emailEmpresa)) = 0)
 	BEGIN
-		RAISERROR('Error en el procedimiento almacenado modificarEmpleado. El formato de la provincia es inválido',16,9);
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email de empresa es inválido.',16,1);
 		RETURN;
 	END
-	IF (LEN(LTRIM(@direccion)) = 0)
+	IF (@idSucursal IS NOT NULL AND NOT EXISTS(SELECT 1 FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal))
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado modificarEmpleado. Los datos del empleados son inválidos.',16,9);
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. La sucursal es inválido.',16,1);
 		RETURN;
 	END
-	IF NOT EXISTS (SELECT 9 FROM Sucursal.Cargo WHERE idCargo = @idCargo)
+	IF (@turno IS NOT NULL AND LEN(LTRIM(@turno)) = 0)
 	BEGIN
-		RAISERROR('Error en el procedimiento almacenado modificarEmpleado. El cargo no existe',16,9);
-		RETURN;
-	END
-	IF (@emailEmpresarial NOT LIKE '%_@__%.__%')
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado modificarEmpleado. El cargo no existe',16,9);
-		RETURN;
-	END
-	IF (@emailPersonal NOT LIKE '%_@__%.__%')
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado modificarEmpleado. El cargo no existe',16,9);
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El turno es inválido.',16,1);
 		RETURN;
 	END
 
@@ -176,14 +208,11 @@ AS BEGIN
 			SET nombre = COALESCE(@nombre,nombre),
 				apellido = COALESCE(@apellido,apellido),
 				emailPersonal = COALESCE(@emailPersonal,emailPersonal),
-				emailEmpresarial = COALESCE(@emailEmpresarial,emailEmpresarial),
+				emailEmpresarial = COALESCE(@emailEmpresa,emailEmpresarial),
 				turno = COALESCE(@turno,turno),
 				idCargo = COALESCE(@idCargo,idCargo),
-				direccion = COALESCE(@direccion,direccion),
-				localidad = COALESCE(@localidad,localidad),
-				provincia = COALESCE(@provincia,provincia),
-				codPostal = COALESCE(@codPostal,codPostal)
-	WHERE legajo = @legajo;
+				direccion = COALESCE(@direccion,direccion)
+	WHERE legajo = @legajo OR idEmpleado = @idEmpleado;
 END
 GO
 --Eliminar Empleado
@@ -207,49 +236,16 @@ GO
 --DROP VIEW Empleado.verEmpleados
 --		SELECT * FROM Empleado.verDatosDeEmpleados
 CREATE OR ALTER VIEW Empleado.verDatosDeEmpleados AS
-	/*
-	WITH EmpleadoCTE AS
-	(
-		SELECT legajo,idTurno,idCargo,idSucursal,idDireccion 
-			FROM Empleado.Empleado
-	),CargoCTE (legajo,idDireccion,idSucursal,idTurno,cargo) AS
-	(
-		SELECT e.legajo,e.idDireccion,e.idSucursal,e.idTurno,c.nombreCargo 
-			FROM EmpleadoCTE e JOIN Sucursal.Cargo c ON e.idCargo = c.idCargo
-	),TurnoCTE (legajo,idDireccion,idSucursal,turno,cargo) AS
-	(
-		SELECT c.legajo,c.idDireccion,c.idSucursal,c.cargo,t.nombreTurno 
-			FROM CargoCTE c JOIN Sucursal.Turno t ON c.idTurno = t.idTurno
-	),SucursalCTE (legajo,cargo,turno,idDireccion,sucursal) AS
-	(
-		SELECT t.legajo,t.cargo,t.turno,t.idDireccion,sucursalDireccion.localidad
-			FROM TurnoCTE t JOIN (SELECT s.idSucursal,d.localidad 
-									FROM Sucursal.Sucursal s JOIN Direccion.Direccion d
-										ON s.idDireccion = d.idDireccion
-									) AS sucursalDireccion
-				ON t.idSucursal = sucursalDireccion.idSucursal
-	),DomicilioCTE AS
-	(
-		SELECT s.legajo,s.cargo,s.turno,s.sucursal,d.calle,d.numeroDeCalle,d.codigoPostal,
-				d.piso,d.departamento,d.localidad,d.provincia
-			FROM SucursalCTE s JOIN Direccion.Direccion d 
-				ON s.idDireccion = d.idDireccion
-	)
-	SELECT e.legajo,e.cuil,e.apellido,e.nombre,e.emailEmpresarial,d.calle,d.numeroDeCalle,
-			d.piso,d.departamento,d.localidad,d.turno,d.cargo,d.sucursal
-		FROM DomicilioCTE d JOIN Empleado.Empleado e 
-			ON d.legajo = e.legajo
-	*/
-	SELECT legajo, cuil, apellido, nombre, emailEmpresarial, e.direccion, e.localidad, turno,
+	SELECT idEmpleado, legajo, cuil, apellido, nombre, emailEmpresarial, e.direccion, turno,
 			e.idSucursal, c.nombreCargo
 	from Empleado.Empleado e
 	INNER JOIN Sucursal.Cargo c on c.idCargo = e.idCargo
+	WHERE e.empleadoActivo = 1
 GO
 --Ver los datos personales de los empleados
 --DROP VIEW Empleado.verDatosPersonalesDeEmpleados
 --		SELECT * FROM Empleado.verDatosPersonalesDeEmpleados
 CREATE OR ALTER VIEW Empleado.verDatosPersonalesDeEmpleados AS
-	SELECT legajo, apellido, nombre, cuil, emailEmpresarial, emailPersonal,
-			direccion, codPostal, localidad, provincia
+	SELECT idEmpleado, legajo, apellido, nombre, cuil, emailEmpresarial, emailPersonal, direccion
 	FROM Empleado.Empleado
 GO

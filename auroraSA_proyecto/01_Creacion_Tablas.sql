@@ -74,7 +74,7 @@ BEGIN
 	CREATE TABLE Empleado.Empleado
 	(
 		idEmpleado INT IDENTITY(1,1),
-		legajo INT UNIQUE,
+		legajo INT,
 		dni CHAR(8) NOT NULL,
 		cuil CHAR(13) NOT NULL,
 		nombre VARCHAR(30) NOT NULL,

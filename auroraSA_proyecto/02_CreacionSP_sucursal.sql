@@ -4,8 +4,6 @@ IF EXISTS (SELECT * FROM sys.databases WHERE name = 'Com2900G19')
 ELSE
 	RAISERROR('Este script está diseñado para que se ejecute despues del script de la creacion de tablas y esquemas.',20,1);
 GO
---  USE master
---DROP DATABASE G2900G19
 /*
 --Esquema Sucursal
 	Tabla Sucursal	
@@ -33,140 +31,85 @@ GO
 --Tabla Sucursal
 --	Procedimiento almacenado que permite agregar una sucursal.
 --	DROP PROCEDURE Sucursal.agregarSucursal
-CREATE OR ALTER PROCEDURE Sucursal.agregarSucursal (@telefono VARCHAR(9),@horario VARCHAR(255),
-													@calle VARCHAR(255),@numeroDeCalle SMALLINT,@codPostal VARCHAR(255),
-													@localidad VARCHAR(255),@provincia VARCHAR(255))
+CREATE OR ALTER PROCEDURE Sucursal.agregarSucursal (
+										@telefono CHAR(9)	= NULL, @horario VARCHAR(50)	= NULL,
+										@dire VARCHAR(100)	= NULL, @localidad VARCHAR(50)	= NULL,
+										@cuit char(13)		= NULL
+													)
 AS BEGIN
 	DECLARE @altaSucursal BIT = 1;
-	IF(LEN(LTRIM(@horario)) = 0)
+	IF @telefono IS NULL OR @telefono NOT LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarSucursal. El telefono es inválido.',16,2);
+		RETURN;
+	END
+	IF(@horario IS NULL OR LEN(LTRIM(@horario)) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarSucursal. El horario es inválido.',16,2);
 		RETURN;
 	END
 
-	IF(LEN(LTRIM(@calle)) = 0)
+	IF(@dire IS NULL OR LEN(LTRIM(@dire)) = 0)
 	BEGIN
-		RAISERROR('Error en el procedimiento almacenado agregarSucursal. La calle es inválida.',16,2);
+		RAISERROR('Error en el procedimiento almacenado agregarSucursal. La direccion es inválida.',16,2);
 		RETURN;
 	END
 
-	IF(LEN(LTRIM(@codPostal)) = 0)
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado agregarSucursal. El código postal es inválido.',16,2);
-		RETURN;
-	END
-
-	IF(LEN(LTRIM(@localidad)) = 0)
+	IF(@localidad IS NULL OR LEN(LTRIM(@localidad)) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarSucursal. La localidad es inválida.',16,2);
 		RETURN;
 	END
-
-	IF(LEN(LTRIM(@provincia)) = 0)
+	IF @cuit IS NULL OR @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
 	BEGIN
-		RAISERROR('Error en el procedimiento almacenado agregarSucursal. La provincia es inválida.',16,2);
+		RAISERROR('Error en el procedimiento almacenado agregarSucursal. El cuit es inválida.',16,2);
 		RETURN;
 	END
 
-	BEGIN TRY
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
-		BEGIN TRANSACTION;
-		/*
-		INSERT INTO Direccion.Direccion (calle,numeroDeCalle,codigoPostal,localidad,provincia) 
-				VALUES (@calle,@numeroDeCalle,@codPostal,@localidad,@provincia);
-		SET @idDireccion = (SELECT TOP(1) idDireccion FROM Direccion.Direccion ORDER BY idDireccion DESC);
-		*/
-		DECLARE @direccion varchar(max);
-		SET @direccion = @calle + ',' + @numeroDeCalle + ',' + @provincia;
-		INSERT INTO Sucursal.Sucursal (telefono,horario,codPostal,sucursalActiva,direccion,localidad)
-				VALUES (@telefono,@horario,@codPostal, @altaSucursal, @direccion,@localidad);
-		COMMIT TRANSACTION;
-	END TRY
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		RAISERROR ('Error en el procedimiento agregarSucursal. Los datos de la sucursal son inválidos.',16,2);
-	END CATCH
-
+	INSERT INTO Sucursal.Sucursal (telefono,horario,sucursalActiva,direccion,localidad,cuit)
+			VALUES (@telefono,@horario,@altaSucursal,@dire,@localidad,@cuit);
 END
 GO
 --	Procedimiento almacenado que permite modificar una sucursal.
 --	DROP PROCEDURE Sucursal.modificarSucursal
-CREATE OR ALTER PROCEDURE Sucursal.modificarSucursal (@idSucursal INT,@telefono VARCHAR(9) = NULL,
-													@horario VARCHAR(255) = NULL,@calle VARCHAR(255) = NULL,
-													@numeroDeCalle SMALLINT = NULL,@codPostal VARCHAR(255) = NULL,
-													@localidad VARCHAR(255) = NULL,@provincia VARCHAR(255) = NULL)
+CREATE OR ALTER PROCEDURE Sucursal.modificarSucursal (
+									@idSucursal INT			= NULL,@telefono VARCHAR(9)	= NULL,
+									@horario VARCHAR(100)	= NULL,@dire VARCHAR(100)	= NULL,
+									@localidad VARCHAR(30)	= NULL
+												)
 AS BEGIN
-	DECLARE @direccion VARCHAR(MAX) = NULL;
-
-	IF(LEN(LTRIM(@horario)) = 0)
+	DECLARE @direccion VARCHAR(100) = NULL;
+	
+	IF(@dire IS NOT NULL AND LEN(LTRIM(@dire)) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado modificarSucursal. La direccion es inválido.',16,10);
+		RETURN;
+	END
+	IF(@horario IS NOT NULL AND LEN(LTRIM(@horario)) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado modificarSucursal. El horario es inválido.',16,10);
 		RETURN;
 	END
-
-	IF(LEN(LTRIM(@calle)) = 0)
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado modificarSucursal. La calle es inválida.',16,10);
-		RETURN;
-	END
-
-	IF(LEN(LTRIM(@codPostal)) = 0)
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado modificarSucursal. El código postal es inválido.',16,10);
-		RETURN;
-	END
-
-	IF(LEN(LTRIM(@localidad)) = 0)
+	IF(@localidad IS NOT NULL AND LEN(LTRIM(@localidad)) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado modificarSucursal. La localidad es inválida.',16,10);
 		RETURN;
 	END
 
-	IF(LEN(LTRIM(@provincia)) = 0)
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado modificarSucursal. La provincia es inválida.',16,10);
-		RETURN;
-	END
-	SET @direccion = @calle + ', ' + @numeroDeCalle;
-	BEGIN TRY
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		BEGIN TRANSACTION
 
-		UPDATE Sucursal.Sucursal
-			SET telefono = COALESCE(@telefono,telefono),
-				horario = COALESCE(@horario,horario),
-				direccion = COALESCE(@direccion, direccion),
-				localidad = COALESCE(@localidad, localidad)
-			WHERE idSucursal = @idSucursal;
-		COMMIT TRANSACTION;
-	END TRY
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		RAISERROR('Error en el procedimiento almacenado modificarSucursal.',16,10);
-	END CATCH
+	UPDATE Sucursal.Sucursal
+		SET telefono = COALESCE(@telefono,telefono),
+			horario = COALESCE(@horario,horario),
+			direccion = COALESCE(@dire, direccion),
+			localidad = COALESCE(@localidad, localidad)
+		WHERE idSucursal = @idSucursal;
+
 END;
 GO
 --	Procedimiento almacenado que permite eliminar una sucursal.
 --	DROP PROCEDURE Sucursal.eliminarSucursal
 CREATE OR ALTER PROCEDURE Sucursal.eliminarSucursal (@idSucursal INT)
 AS BEGIN
-	--DECLARE @idDireccion INT;
-	--Buscamos idDireccion para eliminar la dirección de la sucursal
-	--SET @idDireccion = (SELECT idDireccion FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal);
-	
-	--UPDATE Empleado.Empleado
-	--	SET idSucursal = NULL
-	--	WHERE idSucursal = @idSucursal;
-
-	--UPDATE Factura.Factura
-	--	SET idSucursal = NULL
-	--	WHERE idSucursal = @idSucursal;
-
-	--DELETE FROM Sucursal.Sucursal
-	--	WHERE idSucursal = @idSucursal;
-
-	--DELETE FROM Direccion.Direccion
-	--	WHERE idDireccion = @idDireccion
 	UPDATE Sucursal.Sucursal
 		SET sucursalActiva = 0
 		WHERE idSucursal = @idSucursal;
@@ -190,18 +133,18 @@ GO
 --Tabla Cargo
 --	Procedimiento almacenado que permite agregar un cargo
 --	DROP PROCEDURE Sucursal.agregarCargo
-CREATE OR ALTER PROCEDURE Sucursal.agregarCargo (@nombreCargo VARCHAR(255))
+CREATE OR ALTER PROCEDURE Sucursal.agregarCargo (@nombreCargo VARCHAR(30))
 AS BEGIN
-	IF EXISTS (SELECT 1 FROM Sucursal.Cargo 
-						WHERE nombreCargo = @nombreCargo)
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado agregarCargo. el cargo ya se encuentra ingresado',16,3);
-		RETURN;
-	END
 
 	IF(@nombreCargo IS NULL OR LEN(LTRIM(RTRIM(@nombreCargo))) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarCargo. El nombre del cargo es inválido.',16,3);
+		RETURN;
+	END
+	IF EXISTS (SELECT 1 FROM Sucursal.Cargo 
+						WHERE nombreCargo = @nombreCargo)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarCargo. el cargo ya se encuentra ingresado',16,3);
 		RETURN;
 	END
 
@@ -210,7 +153,7 @@ END
 GO
 --	Procedimiento almacenado que permite modificar un cargo
 --	DROP PROCEDURE Sucursal.modificarCargo
-CREATE OR ALTER PROCEDURE Sucursal.modificarCargo (@idCargo INT,@nombreCargo VARCHAR(255))
+CREATE OR ALTER PROCEDURE Sucursal.modificarCargo (@idCargo INT,@nombreCargo VARCHAR(30))
 AS BEGIN
 	IF (@nombreCargo IS NULL OR LEN(LTRIM(RTRIM(@nombreCargo))) = 0)
 	BEGIN
@@ -238,7 +181,7 @@ GO
 --	DROP VIEW Sucursal.verCargoDeEmpleados
 --	SELECT * FROM Sucursal.verCargoDeEmpleados
 CREATE OR ALTER VIEW Sucursal.verCargoDeEmpleados AS
-	SELECT e.legajo,e.cuil,e.apellido,e.nombre,c.nombreCargo 
+	SELECT e.idEmpleado, e.legajo,e.cuil,e.apellido,e.nombre,c.nombreCargo 
 		FROM Empleado.Empleado e JOIN Sucursal.Cargo c
 		ON e.idCargo = c.idCargo;
 GO
@@ -246,6 +189,6 @@ GO
 --	DROP VIEW Sucursal.verTurnosDeEmpleados
 --	SELECT * FROM Sucursal.verTurnosDeEmpleados
 CREATE OR ALTER VIEW Sucursal.verTurnosDeEmpleados AS
-	SELECT e.legajo,e.cuil,e.apellido,e.nombre,e.turno 
+	SELECT e.idEmpleado, e.legajo,e.cuil,e.apellido,e.nombre,e.turno 
 			FROM Empleado.Empleado e
 GO
