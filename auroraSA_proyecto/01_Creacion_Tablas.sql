@@ -138,7 +138,7 @@ BEGIN
 	(
 		idMedioDePago INT IDENTITY(1,1),
 		nombreMedioDePago VARCHAR(12) NOT NULL,
-		descripcion VARCHAR(25) NOT NULL,
+		descripcion VARCHAR(20) NOT NULL,
 		CONSTRAINT PK_MedioDePago PRIMARY KEY(idMedioDePago)
 	);
 END;
@@ -187,6 +187,7 @@ BEGIN
 	)
 END;
 GO
+
 --		Tabla Detalle Venta
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'DetalleVenta')
 BEGIN
