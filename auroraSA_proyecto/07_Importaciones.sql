@@ -273,7 +273,7 @@ AS BEGIN
 	FETCH NEXT FROM cursorProdSinComillas
 		INTO @fila,@idClasificacion,@campoAParsear
 	WHILE (@@FETCH_STATUS = 0)
-	BEGIN
+	BEGIN 
 		--Obtenemos el nombre del producto
 		SET @nombreProducto = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
 		SET @campoAParsear =SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
