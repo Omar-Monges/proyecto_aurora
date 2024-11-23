@@ -4,7 +4,7 @@
     <LogicalFolder Name="Connections" Type="2" Sorted="true">
       <Items>
         <ConnectionNode Name="DESKTOP-MV2FIBN\SQLEXPRESS:DESKTOP-MV2FIBN\joela">
-          <Created>2024-11-12T13:32:06.3196545-03:00</Created>
+          <Created>2024-11-21T13:52:50.0518356-03:00</Created>
           <Type>SQL</Type>
           <Server>DESKTOP-MV2FIBN\SQLEXPRESS</Server>
           <UserName />
@@ -34,11 +34,11 @@
           <AssociatedConnUserName />
           <FullPath>01_Creacion_Tablas.sql</FullPath>
         </FileNode>
-        <FileNode Name="02_CreacionSPViews_Direccion.sql">
+        <FileNode Name="02_CreacionSP_sucursal.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>02_CreacionSPViews_Direccion.sql</FullPath>
+          <FullPath>02_CreacionSP_sucursal.sql</FullPath>
         </FileNode>
         <FileNode Name="03_CreacionSP_empleado.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
@@ -53,16 +53,10 @@
           <FullPath>04_CreacionSP_producto.sql</FullPath>
         </FileNode>
         <FileNode Name="05_CreacionSP_factura.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>05_CreacionSP_factura.sql</FullPath>
-        </FileNode>
-        <FileNode Name="06_CreacionSP_sucursal.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>06_CreacionSP_sucursal.sql</FullPath>
         </FileNode>
         <FileNode Name="07_Importaciones.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
@@ -83,10 +77,16 @@
           <FullPath>09_importar_empleados.sql</FullPath>
         </FileNode>
         <FileNode Name="10_importar_ventas.sql">
-          <AssociatedConnectionMoniker />
-          <AssociatedConnSrvName />
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>10_importar_ventas.sql</FullPath>
+        </FileNode>
+        <FileNode Name="12_CreacionSPViews_Direccion.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>12_CreacionSPViews_Direccion.sql</FullPath>
         </FileNode>
         <FileNode Name="LotesDePrueba1.sql">
           <AssociatedConnectionMoniker />
