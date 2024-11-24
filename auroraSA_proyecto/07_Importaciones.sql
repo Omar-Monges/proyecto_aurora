@@ -2,6 +2,10 @@ USE Com2900G19;
 GO
 --		USE MASTER
 --		DROP DATABASE Com2900G19
+
+--Importamos los medios de pago
+--		DROP PROCEDURE Importacion.ArchComplementario_importarMedioMedioDePago
+--		SELECT * FROM Venta.MedioDePago
 CREATE OR ALTER PROCEDURE Importacion.ArchComplementario_importarMedioDePago (@ruta NVARCHAR(MAX))
 AS BEGIN
 	CREATE TABLE #MedioDePagoTemp
@@ -89,20 +93,9 @@ AS BEGIN
 	DROP TABLE #SucursalTemp
 END;
 GO
---		SELECT * FROM Sucursal.Sucursal
-GO
 ---------------------------------------ImportarEmpleado------------------------
 --https://learn.microsoft.com/en-us/sql/relational-databases/in-memory-oltp/implementing-update-with-from-or-subqueries?view=sql-server-ver16
 --		DROP PROCEDURE Importacion.ArchComplementario_importarEmpleado
-/*
-
-
-delete from Empleado.Empleado
-exec Importacion.ArchComplementario_importarEmpleado 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-
-select * from empleado.empleado
-
-*/
 CREATE OR ALTER PROCEDURE Importacion.ArchComplementario_importarEmpleado (@ruta NVARCHAR(MAX))
 AS BEGIN
 	DECLARE @tabulador CHAR = CHAR(9);--ASCII del tab
@@ -183,8 +176,6 @@ AS BEGIN
 	DROP TABLE #aux
 END
 GO
---30417854 "María	Roberta	de	los	Angeles"
-
 ------------------------Importar Catalogo -------------------------------------------
 --		DROP PROCEDURE Importacion.importarCatalogoCSV 
 --		SELECT * FROM Producto.Producto
@@ -254,8 +245,6 @@ AS BEGIN
 	DROP TABLE #ProductoAux
 END;
 GO 
---exec Importacion.importarCatalogoCSV 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\'
-GO
 --Importar Accesorios Electronicos
 --		DROP PROCEDURE Importacion.importarAccesoriosElectronicos
 --		SELECT * FROM Producto.Producto
@@ -292,16 +281,14 @@ AS BEGIN
 	 EXEC Producto.pasajeDolarAPesos @dolar OUTPUT;
 
 	INSERT INTO Producto.Producto (idClasificacion,descripcionProducto,precioUnitario,precioReferencia,unidadReferencia,productoActivo)
-		SELECT idClasificacion,producto,precio*@dolar,precio*@dolar,'ud',1 FROM #ProductoAux
+		SELECT idClasificacion,producto,precio*@dolar,precio*@dolar,'ud',1 FROM #ProductoAux pa
+		WHERE NOT EXISTS(
+							SELECT 1 FROM Producto.Producto p  WHERE p.descripcionProducto LIKE pa.producto COLLATE Modern_Spanish_CI_AI
+						)
 
 	--SELECT * FROM #ProductoAux
 	DROP TABLE #ProductoAux
 END;
-/*
-		SELECT * FROM Producto.Clasificacion
-		SELECT * FROM Producto.Producto
-*/
-
 GO
 --Importar productos importados
 --		DROP PROCEDURE Importacion.importarProductosImportados
@@ -350,30 +337,26 @@ AS BEGIN
 	DROP TABLE #ProductoAux
 END;
 GO
-/*
-	SELECT * FROM Producto.Clasificacion
-	SELECT * FROM Producto.Producto
-*/
---ID Factura;Tipo de Factura;Ciudad;Tipo de cliente;Genero;Producto;Precio Unitario;Cantidad;Fecha;hora;Medio de Pago;Empleado;Identificador de pago
 GO
-
 CREATE OR ALTER PROCEDURE Importacion.importar_Ventas (@rutaArchivo NVARCHAR(MAX))
 AS BEGIN
+	DECLARE @valorDolar DECIMAL(6,2),
+			@iva DECIMAL(3,2) = 1.21;
 	CREATE TABLE #aux
 	(
-		id NVARCHAR(MAX),
-		tipoFactura NVARCHAR(MAX),
-		ciudad NVARCHAR(MAX),
-		tipoCliente NVARCHAR(MAX),
-		Genero NVARCHAR(MAX),
-		Producto NVARCHAR(MAX),
-		Precio NVARCHAR(MAX),
-		Cantidad NVARCHAR(MAX),
-		Fecha NVARCHAR(MAX),
-		Hora NVARCHAR(MAX),
-		MedioDePago NVARCHAR(MAX),
-		Empleado NVARCHAR(MAX),
-		IdentificadorDePago NVARCHAR(MAX)
+		id VARCHAR(MAX),
+		tipoFactura VARCHAR(MAX),
+		ciudad VARCHAR(MAX),
+		tipoCliente VARCHAR(MAX),
+		Genero VARCHAR(MAX),
+		Producto VARCHAR(MAX),
+		Precio VARCHAR(MAX),
+		Cantidad VARCHAR(MAX),
+		Fecha VARCHAR(MAX),
+		Hora VARCHAR(MAX),
+		MedioDePago VARCHAR(MAX),
+		Empleado VARCHAR(MAX),
+		IdentificadorDePago VARCHAR(MAX)
 	);
 	DECLARE @SqlDinamico NVARCHAR(MAX);
 	SET @SqlDinamico = 'BULK INSERT #aux
@@ -410,7 +393,7 @@ AS BEGIN
 		WHERE ciudad LIKE 'Yangon'
 	UPDATE #aux
 		SET ciudad = 'Ramos Mejia'
-		WHERE ciudad LIKE 'Naypytaw'
+		WHERE ciudad LIKE 'Naypyitaw'
 	UPDATE #aux
 		SET ciudad = 'Lomas del Mirador'
 		WHERE ciudad LIKE 'Mandalay'
@@ -422,29 +405,68 @@ AS BEGIN
 	UPDATE #aux
 		SET Empleado = e.idEmpleado
 		FROM #aux a JOIN Empleado.Empleado e ON CAST(a.Empleado as int) = e.legajo;
+		
+	UPDATE #aux
+		SET ciudad = s.idSucursal
+		FROM #aux a JOIN Sucursal.Sucursal s ON a.ciudad LIKE s.localidad COLLATE Modern_Spanish_CI_AI
 
-	DECLARE 
+	INSERT INTO Venta.Venta (idEmpleado,idSucursal,fechaHoraVenta,tipoCliente)
+		SELECT Empleado,ciudad,cast(Fecha as datetime) + cast(Hora as datetime),tipoCliente 
+		FROM #aux a WHERE NOT EXISTS (
+										SELECT 1 FROM Venta.Venta v WHERE v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND 
+											v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
+									)
+		
+	UPDATE #aux
+		SET Producto = p.idProducto
+		FROM #aux a JOIN Producto.Producto p ON a.Producto LIKE p.descripcionProducto COLLATE Modern_Spanish_CI_AI
 
-	SELECT *,ROW_NUMBER() OVER(PARTITION BY id ORDER BY id) FROM #aux ORDER BY id
 
+	EXEC Producto.pasajeDolarAPesos @valorDolar OUTPUT;
+
+	INSERT INTO Venta.DetalleVenta (idVenta,idProducto,precioUnitario,cantidad,subtotal)
+		SELECT v.idVenta,a.Producto,a.Precio,a.Cantidad,(a.Precio * @valorDolar) * a.Cantidad 
+		FROM #aux a JOIN Venta.Venta v 
+			ON v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
+		WHERE NOT EXISTS(SELECT 1 FROM Venta.DetalleVenta dv WHERE dv.idVenta = v.idVenta AND dv.idProducto = a.Producto)
+	
+	INSERT INTO Venta.Factura (idVenta,tipoFactura,fechaHora,idMedioDepago,identificadorDePago,estadoDeFactura,totalConIva,totalSinIva)
+		SELECT v.idVenta,a.tipoFactura,v.fechaHoraVenta,a.MedioDePago,a.IdentificadorDePago,'Pagada',@iva* (a.Cantidad * (a.Precio * @valorDolar)),a.Cantidad * (a.Precio * @valorDolar) 
+		FROM #aux a JOIN Venta.Venta v 
+			ON v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
+		WHERE NOT EXISTS(
+			SELECT 1 FROM Venta.Factura f WHERE f.idVenta = v.idVenta
+		)
+		
 	DROP TABLE #aux
 END
 GO
-EXEC Importacion.importar_Ventas 'C:\Users\joela\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
+
 /*
+
+SELECT * FROM Empleado.Empleado
+
+SELECT * FROM Producto.Producto
+
+SELECT * FROM Producto.Clasificacion
+
 SELECT * FROM Venta.Venta
+
 SELECT * FROM Venta.DetalleVenta
+
 SELECT * FROM Venta.Factura
+
+SELECT * FROM Venta.MedioDePago
 */
+
+
+/*
 exec Importacion.ArchComplementario_importarMedioDePago 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 exec Importacion.ImportarClasificacionProducto 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 exec Importacion.ArchComplementario_importarSucursal 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 exec Importacion.ArchComplementario_importarEmpleado 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-exec Importacion.importarCatalogoCSV 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\catalogo.csv'
+exec Importacion.importarCatalogoCSV 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\'
 exec Importacion.importarAccesoriosElectronicos 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Electronic accessories.xlsx'
 exec Importacion.importarProductosImportados 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
-/*
 EXEC Importacion.importar_Ventas 'C:\Users\joela\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
-
 */
-SELECT * FROM Empleado.Empleado

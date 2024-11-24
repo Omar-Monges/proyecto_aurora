@@ -200,6 +200,7 @@ BEGIN
 		idProducto INT,
 		precioUnitario DECIMAL(10,2),
 		cantidad SMALLINT NOT NULL,
+		subtotal DECIMAL(11,2),
 		CONSTRAINT PK_DetalleVenta PRIMARY KEY(idDetalleVenta, idVenta),
 		CONSTRAINT FK_DetalleVenta_Venta FOREIGN KEY(idVenta) REFERENCES Venta.Venta(idVenta),
 		CONSTRAINT FK_DetalleVenta_Producto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto)
