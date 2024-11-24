@@ -35,6 +35,9 @@ GO
 --Esquema Producto
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Producto')
 	EXEC('CREATE SCHEMA Producto');
+--Esquema Importación
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Importacion')
+	EXEC('CREATE SCHEMA Importacion');
 GO
 ------------------------------------------------Tablas------------------------------------------------
 --Esquema Sucursal:
@@ -103,7 +106,7 @@ BEGIN
 	CREATE TABLE Producto.Clasificacion
 	(
 		idClasificacion INT IDENTITY(1,1),
-		nombreClasificacion VARCHAR(35) NOT NULL,
+		nombreClasificacion VARCHAR(40) NOT NULL,
 		lineaDeProducto VARCHAR(15) NOT NULL,
 		CONSTRAINT PK_TipoDeProducto PRIMARY KEY(idClasificacion)
 	)
@@ -138,7 +141,7 @@ BEGIN
 	(
 		idMedioDePago INT IDENTITY(1,1),
 		nombreMedioDePago VARCHAR(12) NOT NULL,
-		descripcion VARCHAR(20) NOT NULL,
+		descripcion VARCHAR(25) NOT NULL,
 		CONSTRAINT PK_MedioDePago PRIMARY KEY(idMedioDePago)
 	);
 END;
@@ -187,7 +190,6 @@ BEGIN
 	)
 END;
 GO
-
 --		Tabla Detalle Venta
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'DetalleVenta')
 BEGIN

@@ -2,7 +2,7 @@ USE Com2900G19;
 GO
 --		USE MASTER
 --		DROP DATABASE Com2900G19
-CREATE OR ALTER PROCEDURE Venta.ArchComplementario_importarMedioDePago (@ruta NVARCHAR(MAX))
+CREATE OR ALTER PROCEDURE Importacion.ArchComplementario_importarMedioDePago (@ruta NVARCHAR(MAX))
 AS BEGIN
 	CREATE TABLE #MedioDePagoTemp
 	(
@@ -27,13 +27,11 @@ AS BEGIN
 							)
 	DROP TABLE #MedioDePagoTemp
 END;
-exec Venta.ArchComplementario_importarMedioDePago 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
---		SELECT * from Venta.MedioDePago
 GO
 --Importar categorias de los productos
 --		DROP PROCEDURE Venta.ImportarClasificacionProducto
 --		SELECT * FROM Producto.Clasificacion
-CREATE OR ALTER PROCEDURE Venta.ImportarClasificacionProducto (@ruta NVARCHAR(MAX))
+CREATE OR ALTER PROCEDURE Importacion.ImportarClasificacionProducto (@ruta NVARCHAR(MAX))
 AS BEGIN
 	CREATE TABLE #ClasificacionAux
 	(
@@ -56,13 +54,11 @@ AS BEGIN
 	DROP TABLE #ClasificacionAux
 
 END
-exec Venta.ImportarClasificacionProducto 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
---		SELECT * FROM Producto.Clasificacion
 GO
 --Importar Sucursales
 --		DROP PROCEDURE Venta.ArchComplementario_importarSucursal
 --		SELECT * FROM Sucursal.Sucursal
-CREATE OR ALTER PROCEDURE Venta.ArchComplementario_importarSucursal (@ruta NVARCHAR(MAX))
+CREATE OR ALTER PROCEDURE Importacion.ArchComplementario_importarSucursal (@ruta NVARCHAR(MAX))
 AS BEGIN
 	CREATE TABLE #SucursalTemp
 	(
@@ -93,17 +89,27 @@ AS BEGIN
 	DROP TABLE #SucursalTemp
 END;
 GO
-exec Venta.ArchComplementario_importarSucursal 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 --		SELECT * FROM Sucursal.Sucursal
 GO
 ---------------------------------------ImportarEmpleado------------------------
 --https://learn.microsoft.com/en-us/sql/relational-databases/in-memory-oltp/implementing-update-with-from-or-subqueries?view=sql-server-ver16
---		DROP PROCEDURE Venta.ArchComplementario_importarEmpleado
-CREATE OR ALTER PROCEDURE Venta.ArchComplementario_importarEmpleado (@ruta NVARCHAR(MAX))
-AS BEGIN
-	DECLARE @tabulador CHAR = CHAR(9);
-	DECLARE @espacio CHAR = CHAR(10);
+--		DROP PROCEDURE Importacion.ArchComplementario_importarEmpleado
+/*
 
+
+delete from Empleado.Empleado
+exec Importacion.ArchComplementario_importarEmpleado 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+
+select * from empleado.empleado
+
+*/
+CREATE OR ALTER PROCEDURE Importacion.ArchComplementario_importarEmpleado (@ruta NVARCHAR(MAX))
+AS BEGIN
+	DECLARE @tabulador CHAR = CHAR(9);--ASCII del tab
+	DECLARE @espacio CHAR = CHAR(10);--ASCII del espacio
+	DECLARE @genero CHAR;
+	DECLARE @DNI CHAR(8);
+	DECLARE @nombre VARCHAR(30);
 	create table #aux
 	(
 		legajo VARCHAR(max),
@@ -133,14 +139,28 @@ AS BEGIN
 	UPDATE #aux
 		SET emailPersonal = REPLACE(emailPersonal,@tabulador,''),
 			emailEmpresarial = REPLACE(emailEmpresarial,@tabulador,'');
+	UPDATE #aux
+		SET nombre = REPLACE(nombre,@tabulador,' ');
 	--Eliminamos los espacios
 	UPDATE #aux
 		SET emailPersonal = REPLACE(emailPersonal,@espacio,''),
 			emailEmpresarial = REPLACE(emailEmpresarial,@espacio,'');
-	--CUIL nulos ----> PREGUNTAR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	UPDATE #aux
-		SET cuil = '12-12345678-9'--PREGUNTAR!!!!!!!!!!!!!!!!!!!!!!!!
-		WHERE cuil IS NULL
+	--Obtenemos el CUIL
+	DECLARE cursorEmpleado CURSOR FOR
+		 SELECT dni,nombre FROM #aux
+	OPEN cursorEmpleado
+	FETCH NEXT FROM cursorEmpleado INTO @DNI,@nombre
+	WHILE(@@FETCH_STATUS = 0)
+	BEGIn
+		EXEC Empleado.obtenerGenero @nombre,@genero OUTPUT
+		UPDATE #aux
+			SET cuil = Empleado.calcularCUIL(@dni,@genero)
+			WHERE dni = @DNI
+		FETCH NEXT FROM cursorEmpleado INTO @DNI,@nombre
+	END
+	CLOSE cursorEmpleado
+	DEALLOCATE cursorEmpleado
+
 	--Agregamos los cargos en la tabla Cargo
 	INSERT INTO Sucursal.Cargo (nombreCargo)
 		SELECT DISTINCT a.cargo FROM #aux a
@@ -161,158 +181,41 @@ AS BEGIN
 			WHERE NOT EXISTS (SELECT 1 FROM Empleado.Empleado e WHERE e.legajo LIKE CAST(a.legajo AS int))
 	--SELECT * FROM #aux
 	DROP TABLE #aux
-END;
+END
 GO
-exec Venta.ArchComplementario_importarEmpleado 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-/*		
-		SELECT * FROM Empleado.Empleado
-		SELECT * FROM Sucursal.Cargo
-*/
-GO
-/*
-DECLARE @rutaArchivo NVARCHAR(MAX) = 'C:\Datos\archivo.csv'; -- Ruta del archivo CSV
-DECLARE @tablaDestino NVARCHAR(128) = 'MiTablaTemporal';    -- Nombre de la tabla destino
-DECLARE @sql NVARCHAR(MAX);
+--30417854 "María	Roberta	de	los	Angeles"
 
-SET @sql = '
-BULK INSERT ' + QUOTENAME(@tablaDestino) + '
-FROM ''' + @rutaArchivo + '''
-WITH (
-    FIELDTERMINATOR = '','', -- Delimitador de campo
-    ROWTERMINATOR = ''\n'',  -- Delimitador de fila
-    FIELDQUOTE = '''''''     -- Especifica que las comillas simples encapsulan texto
-);';
-
--- Ejecutar el SQL dinámico
-EXEC sp_executesql @sql;
-
-*/
-------------------------Importar Catalogo ------------------------------------------- <------		ACAAAAAAAAAAAAAAAAA
---		DROP PROCEDURE Producto.importarCatalogoCSV 
+------------------------Importar Catalogo -------------------------------------------
+--		DROP PROCEDURE Importacion.importarCatalogoCSV 
 --		SELECT * FROM Producto.Producto
 --		SELECT * FROM Producto.Clasificacion
-CREATE OR ALTER PROCEDURE Producto.importarCatalogoCSV (@rutaArchivo NVARCHAR(MAX))
+--		https://www.experts-exchange.com/questions/29057655/Import-CSV-file-into-SQL-Server.html
+CREATE OR ALTER PROCEDURE Importacion.importarCatalogoCSV (@rutaArchivo NVARCHAR(MAX))
 AS BEGIN
 	DECLARE @valorDelDolar DECIMAL(6,2);
-	DECLARE @idClasificacion VARCHAR(35),
-			@fila INT;
-	DECLARE @nombreProducto VARCHAR(100);
-	DECLARE @precioUnitario DECIMAL(10,2),
-			@precioRef DECIMAL(10,2);
-	DECLARE @unidadRef VARCHAR(10);
-	DECLARE @campoAParsear VARCHAR(MAX);
 
-	CREATE TABLE #aux
-	(
-		id VARCHAR(MAX),
-		categoria VARCHAR(MAX),
-		campo VARCHAR(MAX)
-	)
 	CREATE TABLE #ProductoAux
 	(
 		fila INT,
-		clasificacion VARCHAR(35),
+		clasificacion VARCHAR(40),
 		nombre VARCHAR(100),
 		precioUnitario DECIMAL(10,2),
 		precioRef DECIMAL(10,2),
 		unidadRef VARCHAR(10),
-	)
-	
-	DECLARE @SqlDinamico NVARCHAR(MAX);
-	SET @SqlDinamico = 'BULK INSERT #aux
-					FROM '''+ @rutaArchivo +'''
-					WITH
-					(
-						FIELDTERMINATOR = '','',
-						ROWTERMINATOR = ''0x0A'',
-						CODEPAGE=''ACP'',
-						FIRSTROW = 2
-					)';
+		fecha DATETIME
+	)--id,category,name,price,reference_price,reference_unit,date
+	DECLARE @SqlDinamico NVARCHAR(MAX)
+
+	SET @SqlDinamico = 'INSERT #ProductoAux';
+	SET @SqlDinamico = @SqlDinamico + ' SELECT *
+										FROM OPENROWSET(''Microsoft.ACE.OLEDB.16.0'', 
+											''Text; Database='+ @rutaArchivo +'; HDR=YES'', 
+											''SELECT * FROM [catalogo.csv]'');';
 	EXEC sp_executesql @SqlDinamico;
-
-	--SELECT * FROM #aux
-	
-	--Primero parseamos los productos con comillas
-	DECLARE cursorProductosConComillas CURSOR FOR
-		SELECT id,categoria,campo FROM #aux WHERE CHARINDEX('"',campo,1) = 1
-
-	OPEN cursorProductosConComillas
-
-	FETCH NEXT FROM cursorProductosConComillas
-		INTO @fila,@idClasificacion,@campoAParsear
-	WHILE (@@FETCH_STATUS = 0)
-	BEGIN
-		--Obtenemos el nombre del producto
-		SET @nombreProducto = SUBSTRING(@campoAParsear,2,CHARINDEX('"',@campoAParsear,2) - 2);
-		-- 1.79,2.98,kg,2020-07-21 12:06:00
-		--SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX('"',@campoAParsear,2) + 1, LEN(@campoAParsear));
-		SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX('"',@campoAParsear,2) + 2, LEN(@campoAParsear));
-
-		SET @precioUnitario = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-		---- 2.98,kg,2020-07-21 12:06:00
-		SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
-
-		SET @precioRef = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-
-		SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
-		
-		SET @unidadRef = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-
-		INSERT INTO #ProductoAux VALUES (@fila,@idClasificacion,@nombreProducto,@precioUnitario,@precioRef,@unidadRef);
-		
-		FETCH NEXT FROM cursorProductosConComillas
-			INTO @fila,@idClasificacion,@campoAParsear
-	END
-	CLOSE cursorProductosConComillas
-	DEALLOCATE cursorProductosConComillas
-
-	--Ahora parseamos los productos sin comillas
-	DECLARE cursorProdSinComillas CURSOR FOR
-		SELECT id,categoria,campo FROM #aux WHERE CHARINDEX('"',campo,1) = 0
-	OPEN cursorProdSinComillas
-	FETCH NEXT FROM cursorProdSinComillas
-		INTO @fila,@idClasificacion,@campoAParsear
-	WHILE (@@FETCH_STATUS = 0)
-	BEGIN 
-		--Obtenemos el nombre del producto
-		SET @nombreProducto = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-		SET @campoAParsear =SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
-
-		SET @precioUnitario = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-		---- 2.98,kg,2020-07-21 12:06:00
-		SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
-
-		SET @precioRef = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-
-		SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
-		
-		SET @unidadRef = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-
-		INSERT INTO #ProductoAux VALUES (@fila,@idClasificacion,@nombreProducto,@precioUnitario,@precioRef,@unidadRef);
-		
-		FETCH NEXT FROM cursorProdSinComillas
-			INTO @fila,@idClasificacion,@campoAParsear
-	END
-	CLOSE cursorProdSinComillas;
-	DEALLOCATE cursorProdSinComillas;
-
-
-	/*
-		CREATE TABLE #ProductoAux
-	(
-		fila INT,
-		clasificacion INT,
-		nombre VARCHAR(100),
-		precioUnitario DECIMAL(10,2),
-		precioRef DECIMAL(10,2),
-		unidadRef VARCHAR(10),
-	)
-	*/
-	--1.20 16.00
 
 	WITH ProductosRepetidosCTE AS
 	(
-	SELECT ROW_NUMBER() OVER (PARTITION BY nombre ORDER BY fila DESC) AS repetidos FROM #ProductoAux
+		SELECT ROW_NUMBER() OVER (PARTITION BY nombre ORDER BY fila DESC) AS repetidos FROM #ProductoAux
 	)
 	DELETE FROM ProductosRepetidosCTE WHERE repetidos > 1;
 			
@@ -332,80 +235,31 @@ AS BEGIN
 	--Arreglamos las "ú"
 	UPDATE #ProductoAux--Filete de atÃºn
 		SET nombre = REPLACE(nombre,'Ãº','ú');
-	--Arreglamos las "í"
-	UPDATE #ProductoAux--Ñ
-		SET nombre = REPLACE(nombre,'Ã','í');
-	--Arreglamos las ñ
+	--Arreglamos las Ñ
 	UPDATE #ProductoAux--Ã‘oras Hacendado
-		SET nombre = REPLACE(nombre,'Ã‘','ñ');
+		SET nombre = REPLACE(nombre,'Ã‘','Ñ');
+	UPDATE #ProductoAux--Filetes de vacuno 1ÂªB aí±ojo
+		SET nombre = REPLACE(nombre,'Ã±','ñ');
+	--Arreglamos las "í"
+	UPDATE #ProductoAux
+		SET nombre = REPLACE(nombre,'Ã','í');
 
-	SELECT * FROM #ProductoAux
-	--SELECT * FROM #aux
+	EXEC Producto.pasajeDolarAPesos @valorDelDolar OUTPUT;
+		
+	INSERT INTO Producto.Producto (idClasificacion,descripcionProducto,precioUnitario,precioReferencia,unidadReferencia,productoActivo)
+		SELECT clasificacion,nombre,(precioUnitario/100) * @valorDelDolar,(precioRef/100) * @valorDelDolar,unidadRef,1 FROM #ProductoAux
+			WHERE NOT EXISTS (SELECT 1 FROM Producto.Producto WHERE descripcionProducto LIKE nombre COLLATE Modern_Spanish_CI_AI)
+			
+	--SELECT * FROM #ProductoAux --ORDER BY precioUnitario DESC
 	DROP TABLE #ProductoAux
-	DROP TABLE #aux
 END;
 GO 
-exec Producto.importarCatalogoCSV 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\catalogo.csv'
+--exec Importacion.importarCatalogoCSV 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\'
 GO
-SELECT * FROM Producto.Clasificacion
---23,fruta,Naranjas,3.79,1.26,kg,2020-07-21 12:06:00
-
-
-
-DECLARE @campoAParsear VARCHAR(MAX) = '"Pimientos tricolor rojo, amarillo y verde",1.79,2.98,kg,2020-07-21 12:06:00'
-print SUBSTRING(@campoAParsear,2,CHARINDEX('"',@campoAParsear,2) - 2);
-SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX('"',@campoAParsear,2)+2, LEN(@campoAParsear));
-print @campoAParsear
-print SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1)
-
-/*
-		SET @nombreProducto = SUBSTRING(@campoAParsear,2,CHARINDEX('"',@campoAParsear,2) - 2);
-		-- 1.79,2.98,kg,2020-07-21 12:06:00
-		--SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX('"',@campoAParsear,2) + 1, LEN(@campoAParsear));
-		SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
-
-		SET @precioUnitario = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-		---- 2.98,kg,2020-07-21 12:06:00
-		SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
-
-		SET @precioRef = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-
-		SET @campoAParsear = SUBSTRING(@campoAParsear,CHARINDEX(',',@campoAParsear,1) + 1, LEN(@campoAParsear));
-		
-		SET @unidadRef = SUBSTRING(@campoAParsear,1,CHARINDEX(',',@campoAParsear,1) - 1);
-*/
-
-
-DECLARE @x VARCHAR(MAX) = 'Naranjas,3.79,1.26,kg,2020-07-21 12:06:00'
-SELECT REVERSE(@x),
-SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) + 1,LEN(@x)),
-SUBSTRING(SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) + 1,LEN(@x)),1,CHARINDEX(',',SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) - 1,LEN(@x)),1))
-
-SUBSTRING(SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) + 1,LEN(@x)),CHARINDEX(',',SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) + 1,LEN(@x)),1) + 1,LEN(@x))
-
-
-SUBSTRING(SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) + 1,LEN(@x)),CHARINDEX(',',SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) + 1,LEN(@x)),1) + 1,LEN(@x))
-
-SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) + 1,LEN(@x)),
-
-  SUBSTRING(REVERSE(@x),CHARINDEX(',',REVERSE(@x),1) + 1,LEN(@x))
-
---SUBSTRING(@campo,2,CHARINDEX('"',@campo,2) - 2)
-DECLARE @var VARCHAR(MAX) = '"Jorge"XD'
-print SUBSTRING(@var,CHARINDEX('"',@var,2) + 1,LEN(@var))
-print SUBSTRING(@var,2,CHARINDEX('"',@var,2) - 2)
-print SUBSTRING(@var,2,LEN(@var))
-print CHARINDEX('"',@var,1)
-
---id,category,name,price,reference_price,reference_unit,date		
-
-
-GO
---		SELECT * FROM Producto.Clasificacion
 --Importar Accesorios Electronicos
---		DROP PROCEDURE Producto.importarAccesoriosElectronicos
+--		DROP PROCEDURE Importacion.importarAccesoriosElectronicos
 --		SELECT * FROM Producto.Producto
-CREATE OR ALTER PROCEDURE Producto.importarAccesoriosElectronicos (@ruta NVARCHAR(MAX))
+CREATE OR ALTER PROCEDURE Importacion.importarAccesoriosElectronicos (@ruta NVARCHAR(MAX))
 AS BEGIN
 	DECLARE @dolar DECIMAL(6,2);
 	CREATE TABLE #ProductoAux
@@ -443,7 +297,6 @@ AS BEGIN
 	--SELECT * FROM #ProductoAux
 	DROP TABLE #ProductoAux
 END;
-exec Producto.importarAccesoriosElectronicos 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Electronic accessories.xlsx'
 /*
 		SELECT * FROM Producto.Clasificacion
 		SELECT * FROM Producto.Producto
@@ -451,8 +304,8 @@ exec Producto.importarAccesoriosElectronicos 'C:\Users\joela\Downloads\TP_integr
 
 GO
 --Importar productos importados
---		DROP PROCEDURE Producto.importarProductosImportados
-CREATE OR ALTER PROCEDURE Producto.importarProductosImportados (@ruta NVARCHAR(MAX))
+--		DROP PROCEDURE Importacion.importarProductosImportados
+CREATE OR ALTER PROCEDURE Importacion.importarProductosImportados (@ruta NVARCHAR(MAX))
 AS BEGIN
 	DECLARE @dolar DECIMAL(6,2);
 	CREATE TABLE #ProductoAux
@@ -497,8 +350,101 @@ AS BEGIN
 	DROP TABLE #ProductoAux
 END;
 GO
-exec Producto.importarProductosImportados 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
 /*
 	SELECT * FROM Producto.Clasificacion
 	SELECT * FROM Producto.Producto
 */
+--ID Factura;Tipo de Factura;Ciudad;Tipo de cliente;Genero;Producto;Precio Unitario;Cantidad;Fecha;hora;Medio de Pago;Empleado;Identificador de pago
+GO
+
+CREATE OR ALTER PROCEDURE Importacion.importar_Ventas (@rutaArchivo NVARCHAR(MAX))
+AS BEGIN
+	CREATE TABLE #aux
+	(
+		id NVARCHAR(MAX),
+		tipoFactura NVARCHAR(MAX),
+		ciudad NVARCHAR(MAX),
+		tipoCliente NVARCHAR(MAX),
+		Genero NVARCHAR(MAX),
+		Producto NVARCHAR(MAX),
+		Precio NVARCHAR(MAX),
+		Cantidad NVARCHAR(MAX),
+		Fecha NVARCHAR(MAX),
+		Hora NVARCHAR(MAX),
+		MedioDePago NVARCHAR(MAX),
+		Empleado NVARCHAR(MAX),
+		IdentificadorDePago NVARCHAR(MAX)
+	);
+	DECLARE @SqlDinamico NVARCHAR(MAX);
+	SET @SqlDinamico = 'BULK INSERT #aux
+					FROM '''+ @rutaArchivo +'''
+					WITH
+					(
+						FIRSTROW = 2,
+						FIELDTERMINATOR = '';'',
+						ROWTERMINATOR = ''\n'',
+						CODEPAGE=''65001''
+					)';
+	EXEC sp_executesql @SqlDinamico;
+
+	--Fixeamos las tildes
+	UPDATE #aux--PlÃ¡tano macho
+		SET Producto = REPLACE(Producto,'Ã¡','á');	
+	UPDATE #aux--TÃ© matcha en polvo Hacendado
+		SET Producto = REPLACE(Producto,'Ã©','é');
+	UPDATE #aux--TÃ³nica zero calorÃ­as Schweppes
+		SET Producto = REPLACE(Producto,'Ã³','ó');
+	UPDATE #aux
+		SET Producto = REPLACE(Producto,'Ãº','ú');
+	UPDATE #aux--NÃ©ctar guayaba Hacendado sin azÃºcares aÃ±adidos
+		SET Producto = REPLACE(Producto,'Ã±','ñ');
+	UPDATE #aux
+		SET Producto = REPLACE(Producto,'Ã‘','Ñ');
+	UPDATE #aux
+		SET Producto = REPLACE(Producto,'Ã','í');
+	
+	DELETE FROM #aux WHERE NOT EXISTS ( SELECT 1 FROM Producto.Producto WHERE descripcionProducto LIKE Producto COLLATE Modern_SPanish_CI_AI)
+
+	UPDATE #aux
+		SET ciudad = 'San Justo'
+		WHERE ciudad LIKE 'Yangon'
+	UPDATE #aux
+		SET ciudad = 'Ramos Mejia'
+		WHERE ciudad LIKE 'Naypytaw'
+	UPDATE #aux
+		SET ciudad = 'Lomas del Mirador'
+		WHERE ciudad LIKE 'Mandalay'
+
+	UPDATE #aux
+		SET MedioDePago = m.idMedioDePago
+		FROM Venta.MedioDePago m JOIN #aux a ON m.nombreMedioDePago LIKE a.MedioDePago COLLATE Modern_Spanish_CI_AI
+
+	UPDATE #aux
+		SET Empleado = e.idEmpleado
+		FROM #aux a JOIN Empleado.Empleado e ON CAST(a.Empleado as int) = e.legajo;
+
+	DECLARE 
+
+	SELECT *,ROW_NUMBER() OVER(PARTITION BY id ORDER BY id) FROM #aux ORDER BY id
+
+	DROP TABLE #aux
+END
+GO
+EXEC Importacion.importar_Ventas 'C:\Users\joela\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
+/*
+SELECT * FROM Venta.Venta
+SELECT * FROM Venta.DetalleVenta
+SELECT * FROM Venta.Factura
+*/
+exec Importacion.ArchComplementario_importarMedioDePago 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+exec Importacion.ImportarClasificacionProducto 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+exec Importacion.ArchComplementario_importarSucursal 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+exec Importacion.ArchComplementario_importarEmpleado 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+exec Importacion.importarCatalogoCSV 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\catalogo.csv'
+exec Importacion.importarAccesoriosElectronicos 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Electronic accessories.xlsx'
+exec Importacion.importarProductosImportados 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
+/*
+EXEC Importacion.importar_Ventas 'C:\Users\joela\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
+
+*/
+SELECT * FROM Empleado.Empleado

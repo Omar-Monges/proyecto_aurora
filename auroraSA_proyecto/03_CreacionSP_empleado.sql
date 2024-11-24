@@ -27,7 +27,8 @@ GO
 --	DROP PROCEDURE Empleado.agregarEmpleado
 --	PRINT Empleado.calcularCUIL('42781944','M')		<--- Salida esperada: 20-42781944-3
 -- PRINT Empleado.calcularCUIL('93113720', 'F')
-CREATE OR ALTER FUNCTION Empleado.calcularCUIL (@dni VARCHAR(8), @sexo CHAR)
+-- PRINT Empleado.calcularCUIL('36508254','F')
+CREATE OR ALTER FUNCTION Empleado.calcularCUIL (@dni CHAR(8), @sexo CHAR)
 RETURNS VARCHAR(13)
 AS BEGIN
 	DECLARE @aux VARCHAR(10) = '5432765432',
@@ -64,6 +65,13 @@ GO
 --Obtener el genero de un empleado.
 --		DROP PROCEDURE Empleado.obtenerGenero
 --		DECLARE @genero CHAR;DECLARE @nombre VARCHAR(30) = 'Micaela';EXEC Empleado.ObtenerGenero @nombre,@genero OUTPUT;print @genero
+/*
+
+	DECLARE @genero CHAR;DECLARE @nombre VARCHAR(30) = 'Joel',@dni CHAR(8)='42781944';EXEC Empleado.ObtenerGenero @nombre,@genero OUTPUT;SELECT Empleado.calcularCuil(@dni,@genero)
+
+*/
+
+
 CREATE OR ALTER PROCEDURE Empleado.obtenerGenero (@nombre VARCHAR(30), @genero CHAR OUTPUT)
 AS
 BEGIN
@@ -74,6 +82,11 @@ BEGIN
 		RETURN;
 
 	SET @nombre = REPLACE(@nombre,' ','%20');
+	SET @nombre = REPLACE(@nombre,'á','a');
+	SET @nombre = REPLACE(@nombre,'é','e');
+	SET @nombre = REPLACE(@nombre,'í','i');
+	SET @nombre = REPLACE(@nombre,'ó','o');
+	SET @nombre = REPLACE(@nombre,'ú','u');
 
 	SET @url = 'https://api.genderize.io?name=' + @nombre;
 
@@ -100,9 +113,9 @@ BEGIN
 	);
 
 	IF (@generoAux LIKE 'female')
-		SET @genero = 'f';
+		SET @genero = 'F';
 	ELSE
-		SET @genero = 'm';
+		SET @genero = 'M';
 END
 GO
 --Agregar un Empleado
