@@ -52,7 +52,7 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado crearVenta. DNI no valido',16,14);
 		RETURN;
 	END
-	IF @genero IS NULL OR UPPER(@genero) IN ('M','F')
+	IF @genero IS NULL OR UPPER(@genero) NOT IN ('M','F')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado crearVenta. Genero no valido para calcular el cuil',16,14);
 		RETURN;
@@ -74,8 +74,9 @@ AS BEGIN
 	-- creamos la factura
 	--EXEC Venta.crearFactura @idVentaRecien, @fechaHora, 'Pendiente'
 	
-	INSERT INTO Venta.Factura(idVenta, fechaHora,estadoDeFactura, totalConIva, totalSinIva)
-	VALUES (@idVentaRecien,@fechaHora,'Pendiente', 0, 0)
+	INSERT INTO Venta.Factura(idVenta, fechaHora,estadoDeFactura, totalConIva, totalSinIva, cuit)
+	SELECT @idVentaRecien,@fechaHora,'Pendiente', 0, 0, cuit
+	FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal
 END
 GO
 CREATE OR ALTER PROCEDURE Venta.agregarProducto(
@@ -221,7 +222,8 @@ AS BEGIN
 	--Actualizamos el producto en detalleVenta
 	UPDATE Venta.DetalleVenta
 		SET cantidad = @cantidad,
-			precioUnitario = @precioUnitario
+			precioUnitario = @precioUnitario,
+			subTotal = @cantidad * @precioUnitario
 	WHERE idVenta = @idVenta AND idProducto = @idProducto
 	--Actualizamos los totales
 	UPDATE Venta.Factura
@@ -235,7 +237,7 @@ GO
 CREATE OR ALTER PROCEDURE Venta.cerrarVenta(
 		@idVenta INT = NULL, @medioDePago VARCHAR(12) = NULL,
 		@comprobante VARCHAR(23) = NULL, @tipoFactura CHAR(1) = NULL,
-		@nuevoEstado VARCHAR(10)
+		@nuevoEstado VARCHAR(10) = NULL, @idNotaDeCredito INT = NULL
 )
 AS BEGIN
 	DECLARE @estado VARCHAR(10), @idMedioDePago INT
@@ -301,17 +303,22 @@ AS BEGIN
 	END
 END
 GO
---------------Eliminar factura de forma logica o no?
+--------------Eliminar factura de forma logica
 
 CREATE OR ALTER PROCEDURE Venta.cancelarFactura(@idVenta INT = NULL)
 AS BEGIN
 	DECLARE @estado VARCHAR(10)
 	IF(@idVenta IS NULL)
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado cancelarFactura. Factura no encontrada.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado cancelarFactura. idVenta no valido.',16,12);
 		RETURN;
 	END
 	SET @estado = (SELECT estadoDeFactura FROM Venta.Factura WHERE idVenta = @idVenta)
+	IF @estado IS NULL
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado cancelarFactura. La factura no encontrada.',16,12);
+		RETURN;
+	END
 	IF @estado IN ('Pagado', 'Cancelado')
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado cancelarFactura. La factura no puede ser modificada.',16,12);
@@ -325,16 +332,27 @@ AS BEGIN
 END
 GO
 
---------------Crear nota de Credito----------------------
+--------------Crear nota de Credito SOLO SUPERVISORES----------------------
 
 CREATE OR ALTER PROCEDURE Venta.crearNotaDeCredito(
-			@idVenta INT = NULL, @montoDeCredito DECIMAL(11,2) = NULL,
-			@laRazon VARCHAR(50) = NULL)
+			@idVenta INT = NULL, @idSupervisor INT = NULL,
+			@montoDeCredito DECIMAL(11,2) = NULL, @laRazon VARCHAR(50) = NULL)
 AS BEGIN
+	/*
+		1. idVenta exista y estado sea pagado
+		2. Chequeamos el monto de credito no supere el total de la factua pagada
+		3. Agregamos quien dio el credito
+		4. generamos la nota de credito
+	*/
 	DECLARE @estado VARCHAR(10), @montoFactura DECIMAL(11,2)
 	IF(@idVenta IS NULL)
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. Factura no encontrada.',16,12);
+		RETURN;
+	END
+	IF @idSupervisor IS NULL OR EXISTS(SELECT 1 FROM Empleado.Empleado WHERE idEmpleado = @idSupervisor AND empleadoActivo = 1)
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. Supervisor no Valido.',16,12);
 		RETURN;
 	END
 	-- Solo dar nota de credito a facturas pagadas y el monto no supere el total pagado
@@ -354,3 +372,4 @@ AS BEGIN
 	-- Cuando se usa? este credito?
 END
 GO
+---------cancelar facturas pendientes o en proceso SOLO SUPERVISORE-------------

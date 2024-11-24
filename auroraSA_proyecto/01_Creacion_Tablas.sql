@@ -171,6 +171,7 @@ BEGIN
 		idFactura INT IDENTITY(1,1),
 		idVenta INT,
 		tipoFactura CHAR,
+		cuit CHAR(23),
 		--idTipoCliente SMALLINT NOT NULL,
 		fechaHora SMALLDATETIME,
 		idMedioDepago INT,
@@ -200,11 +201,7 @@ BEGIN
 		idProducto INT,
 		precioUnitario DECIMAL(10,2),
 		cantidad SMALLINT NOT NULL,
-<<<<<<< Updated upstream
-		subtotal DECIMAL(11,2),
-=======
 		subTotal DECIMAL(11,2),
->>>>>>> Stashed changes
 		CONSTRAINT PK_DetalleVenta PRIMARY KEY(idDetalleVenta, idVenta),
 		CONSTRAINT FK_DetalleVenta_Venta FOREIGN KEY(idVenta) REFERENCES Venta.Venta(idVenta),
 		CONSTRAINT FK_DetalleVenta_Producto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto)
@@ -218,11 +215,13 @@ BEGIN
 	(
 		idNotaDeCredito INT IDENTITY(1,1),
 		idFactura INT,
+		idEmpleadoSupervisor INT,
 		razon VARCHAR(50),
 		fechaDeCreacion SMALLDATETIME NOT NULL,
 		montoTotalDeCredito DECIMAL(10,2),
 		CONSTRAINT PK_NotaDeCredito PRIMARY KEY(idNotaDeCredito),
 		CONSTRAINT FK_NotaDeCredito_idFactura FOREIGN KEY(idFactura) REFERENCES Venta.Factura(idFactura),
+		CONSTRAINT FK_NotaDeCredito_idEmpleadoSupervisor FOREIGN KEY(idEmpleadoSupervisor) REFERENCES Empleado.Empleado(idEmpleado),
 		CONSTRAINT CK_NotaDeCredito_Monto CHECK(montoTotalDeCredito > 0)
 	)
 END
