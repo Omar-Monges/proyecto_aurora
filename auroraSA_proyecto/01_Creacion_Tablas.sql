@@ -170,12 +170,12 @@ BEGIN
 	(
 		idFactura INT IDENTITY(1,1),
 		idVenta INT,
-		tipoFactura CHAR NOT NULL,
+		tipoFactura CHAR,
 		--idTipoCliente SMALLINT NOT NULL,
-		fechaHora SMALLDATETIME NOT NULL,
+		fechaHora SMALLDATETIME,
 		idMedioDepago INT,
-		identificadorDePago VARCHAR(23) NOT NULL,
-		estadoDeFactura VARCHAR(10) NOT NULL,
+		identificadorDePago VARCHAR(23),
+		estadoDeFactura VARCHAR(10),
 		totalConIva DECIMAL(11,2),
 		totalSinIva DECIMAL(11,2),
 		iva DECIMAL(3,2) DEFAULT 1.21,
@@ -200,7 +200,11 @@ BEGIN
 		idProducto INT,
 		precioUnitario DECIMAL(10,2),
 		cantidad SMALLINT NOT NULL,
+<<<<<<< Updated upstream
 		subtotal DECIMAL(11,2),
+=======
+		subTotal DECIMAL(11,2),
+>>>>>>> Stashed changes
 		CONSTRAINT PK_DetalleVenta PRIMARY KEY(idDetalleVenta, idVenta),
 		CONSTRAINT FK_DetalleVenta_Venta FOREIGN KEY(idVenta) REFERENCES Venta.Venta(idVenta),
 		CONSTRAINT FK_DetalleVenta_Producto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto)
