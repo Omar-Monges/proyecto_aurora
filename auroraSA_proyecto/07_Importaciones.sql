@@ -431,7 +431,7 @@ AS BEGIN
 		WHERE NOT EXISTS(SELECT 1 FROM Venta.DetalleVenta dv WHERE dv.idVenta = v.idVenta AND dv.idProducto = a.Producto)
 	
 	INSERT INTO Venta.Factura (idVenta,tipoFactura,fechaHora,idMedioDepago,identificadorDePago,estadoDeFactura,totalConIva,totalSinIva)
-		SELECT v.idVenta,a.tipoFactura,v.fechaHoraVenta,a.MedioDePago,a.IdentificadorDePago,'Pagada',@iva* (a.Cantidad * (a.Precio * @valorDolar)),a.Cantidad * (a.Precio * @valorDolar) 
+		SELECT v.idVenta,a.tipoFactura,v.fechaHoraVenta,a.MedioDePago,a.IdentificadorDePago,'Pagado',@iva* (a.Cantidad * (a.Precio * @valorDolar)),a.Cantidad * (a.Precio * @valorDolar) 
 		FROM #aux a JOIN Venta.Venta v 
 			ON v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
 		WHERE NOT EXISTS(
@@ -461,12 +461,14 @@ SELECT * FROM Venta.MedioDePago
 
 
 /*
-exec Importacion.ArchComplementario_importarMedioDePago 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-exec Importacion.ImportarClasificacionProducto 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 exec Importacion.ArchComplementario_importarSucursal 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 exec Importacion.ArchComplementario_importarEmpleado 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+exec Importacion.ArchComplementario_importarMedioDePago 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+exec Importacion.ImportarClasificacionProducto 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 exec Importacion.importarCatalogoCSV 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\'
 exec Importacion.importarAccesoriosElectronicos 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Electronic accessories.xlsx'
 exec Importacion.importarProductosImportados 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
-EXEC Importacion.importar_Ventas 'C:\Users\joela\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
+exec Importacion.importar_Ventas 'C:\Users\joela\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
 */
+
+SELECT * FROM Empleado.Empleado --20/0
