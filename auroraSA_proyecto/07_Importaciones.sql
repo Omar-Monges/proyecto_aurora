@@ -430,10 +430,11 @@ AS BEGIN
 			ON v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
 		WHERE NOT EXISTS(SELECT 1 FROM Venta.DetalleVenta dv WHERE dv.idVenta = v.idVenta AND dv.idProducto = a.Producto)
 	
-	INSERT INTO Venta.Factura (idVenta,tipoFactura,fechaHora,idMedioDepago,identificadorDePago,estadoDeFactura,totalConIva,totalSinIva)
-		SELECT v.idVenta,a.tipoFactura,v.fechaHoraVenta,a.MedioDePago,a.IdentificadorDePago,'Pagado',@iva* (a.Cantidad * (a.Precio * @valorDolar)),a.Cantidad * (a.Precio * @valorDolar) 
+	INSERT INTO Venta.Factura (idVenta,tipoFactura,fechaHora,idMedioDepago,identificadorDePago,estadoDeFactura,totalConIva,totalSinIva,cuit)
+		SELECT v.idVenta,a.tipoFactura,v.fechaHoraVenta,a.MedioDePago,a.IdentificadorDePago,'Pagado',@iva* (a.Cantidad * (a.Precio * @valorDolar)),a.Cantidad * (a.Precio * @valorDolar),s.cuit 
 		FROM #aux a JOIN Venta.Venta v 
 			ON v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
+			JOIN Sucursal.Sucursal s ON v.idSucursal = s.idSucursal
 		WHERE NOT EXISTS(
 			SELECT 1 FROM Venta.Factura f WHERE f.idVenta = v.idVenta
 		)
