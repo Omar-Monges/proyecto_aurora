@@ -332,41 +332,60 @@ GO
 --------------Crear nota de Credito SOLO SUPERVISORES----------------------
 
 CREATE OR ALTER PROCEDURE Venta.crearNotaDeCredito(
-			@idVenta INT = NULL, @idSupervisor INT = NULL,
+			@idFactura INT = NULL, @idSupervisor INT = NULL,
 			@montoDeCredito DECIMAL(11,2) = NULL, @laRazon VARCHAR(50) = NULL)
 AS BEGIN
 	/*
-		1. idVenta exista y estado sea pagado
-		2. Chequeamos el monto de credito no supere el total de la factua pagada
-		3. Agregamos quien dio el credito
-		4. generamos la nota de credito
+		1. idVenta exista y estado sea pagado x
+		1.1 Chequeamos que esa factura no tenga ya un NDC x
+		2. Chequeamos el monto de credito no supere el total de la factua pagada x
+		3. Agregamos quien dio el credito x
+		4. generamos la nota de credito x
 	*/
-	DECLARE @estado VARCHAR(10), @montoFactura DECIMAL(11,2)
-	IF(@idVenta IS NULL)
+	DECLARE @estado VARCHAR(10), @montoFactura DECIMAL(11,2), @cantNDC INT
+	IF(@idFactura IS NULL)
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. Factura no encontrada.',16,12);
 		RETURN;
 	END
-	IF @idSupervisor IS NULL OR EXISTS(SELECT 1 FROM Empleado.Empleado WHERE idEmpleado = @idSupervisor AND empleadoActivo = 1)
+	-- Solo dar nota de credito a facturas pagadas y el monto no supere el total pagado
+	SELECT @estado = estadoDeFactura, @montoFactura = totalConIva FROM Venta.Factura WHERE idFactura = @idFactura
+	IF @estado IS NULL 
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. Supervisor no Valido.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. La factura no existe.',16,12);
 		RETURN;
 	END
-	-- Solo dar nota de credito a facturas pagadas y el monto no supere el total pagado
-	SELECT @estado = estadoDeFactura, @montoFactura = totalConIva FROM Venta.Factura WHERE idVenta = @idVenta
 	IF @estado <> 'Pagado'
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. No se puede emitir nota de credito a Factura no pagada.',16,12);
 		RETURN;
 	END
+	-- Chequeamos que no hay nota de credito para esa factura
+	IF (SELECT COUNT(idNotaDeCredito) FROM Venta.NotaDeCredito WHERE idFactura = @idFactura) > 0
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. La factura ya tiene una NOTA DE CREDITO.',16,12);
+		RETURN;
+	END
+	IF @idSupervisor IS NULL OR NOT EXISTS(SELECT 1 FROM Empleado.Empleado WHERE idEmpleado = @idSupervisor AND empleadoActivo = 1)
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. Supervisor no Valido.',16,12);
+		RETURN;
+	END
+	
 	IF @montoDeCredito > @montoFactura
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. No se puede emitir el monto de credito, supera a la monto de la Factura pagada.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. No se puede emitir el monto de credito, supera al monto de la Factura pagada.',16,12);
+		RETURN;
+	END
+	IF @laRazon IS NULL OR LEN(RTRIM(@laRazon)) < 5
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. La razon es invalida.',16,12);
 		RETURN;
 	END
 	-- Creamos la nota de credito
-	-- Siempre se mantiene igual?
-	-- Cuando se usa? este credito?
+	INSERT INTO Venta.NotaDeCredito(idEmpleadoSupervisor, idFactura, fechaDeCreacion, montoTotalDeCredito,razon)
+	SELECT @idSupervisor, @idFactura, GETDATE(), @montoDeCredito, @laRazon
 END
 GO
 ---------cancelar facturas pendientes o en proceso SOLO SUPERVISORE-------------
+-- En este enfoque donde no se crean facturas hasta cerrar ventas no necesitamos cancelar la ventas pendientes\en proceso
