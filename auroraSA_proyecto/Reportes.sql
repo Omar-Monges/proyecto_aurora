@@ -11,7 +11,6 @@ la semana, incluyendo sábado y domingo.
 --		DECLARE @mes TINYINT = 1, @anio SMALLINT = 2019;EXEC Venta.ReporteMensualDeUnAnio @mes,@anio
 CREATE OR ALTER PROCEDURE venta.ReporteMensualDeUnAnio (@mes TINYINT, @anio SMALLINT)
 AS BEGIN
-	
 	WITH VentasXDiaCTE (Dia,MontoFacturado)AS
 	(
 		SELECT DISTINCT DATENAME(dw,fechaHora),SUM(totalConIva) OVER(PARTITION BY DATENAME(dw,fechaHora)) FROM Venta.Factura
