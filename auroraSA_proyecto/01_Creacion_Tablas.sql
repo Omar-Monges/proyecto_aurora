@@ -157,6 +157,7 @@ BEGIN
 		fechaHoraVenta SMALLDATETIME,
 		cuilCliente CHAR(13),
 		tipoCliente CHAR(6),
+		estadoVenta VARCHAR(10),
 		CONSTRAINT PK_Venta PRIMARY KEY(idVenta),
 		CONSTRAINT FK_Venta_Empleado FOREIGN KEY(idEmpleado) REFERENCES Empleado.Empleado(idEmpleado),
 		CONSTRAINT FK_Venta_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal)

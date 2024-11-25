@@ -32,9 +32,9 @@ GO
 	
 --Esquema Venta
 CREATE OR ALTER PROCEDURE Venta.crearVenta(
-								@idEmpleado INT	= NULL, @idSucursal INT	= NULL,
-								@dni CHAR(8)	= NULL,@genero CHAR		= NULL,
-								@tipoCliente CHAR(6) = NULL, @idVentaRecien INT OUTPUT
+								@idEmpleado INT	= NULL,
+								@idSucursal INT	= NULL,
+								@idVentaRecien INT OUTPUT
 								)
 AS BEGIN
 	IF @idEmpleado IS NULL OR NOT EXISTS(SELECT 1 FROM Empleado.Empleado WHERE idEmpleado = @idEmpleado)
@@ -42,41 +42,18 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado crearVenta. Empleado no valido',16,14);
 		RETURN;
 	END
-	IF @idSucursal IS NULL OR NOT EXISTS(SELECT 1 FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal)
+	IF @idSucursal IS NULL OR NOT EXISTS(SELECT 1 FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal AND sucursalActiva = 1)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado crearVenta. Sucursal no valido',16,14);
 		RETURN;
 	END
-	IF @dni IS NULL OR LEN(RTRIM(@dni)) <> 8
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado crearVenta. DNI no valido',16,14);
-		RETURN;
-	END
-	IF @genero IS NULL OR UPPER(@genero) NOT IN ('M','F')
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado crearVenta. Genero no valido para calcular el cuil',16,14);
-		RETURN;
-	END
-	IF @tipoCliente IS NULL OR LEN(RTRIM(@tipoCliente)) <> 6
-	BEGIN
-		RAISERROR('Error en el procedimiento almacenado crearVenta. tipoCliente no valido',16,14);
-		RETURN;
-	END
-	DECLARE @cuilCliente CHAR(13),
-		@fechaHora SMALLDATETIME = GETDATE()
+	DECLARE @fechaHora SMALLDATETIME = GETDATE()
 
-	SET @cuilCliente = Empleado.calcularCUIL(@dni, @genero)
 
-	INSERT Venta.Venta(cuilCliente, idEmpleado, idSucursal, fechaHoraVenta, tipoCliente)
-	SELECT @cuilCliente, @idEmpleado, @idSucursal, @fechaHora, @tipoCliente
+	INSERT Venta.Venta(idEmpleado, idSucursal, fechaHoraVenta, estadoVenta)
+	SELECT @idEmpleado, @idSucursal, @fechaHora, 'Pendiente'
 	-- obtenemos el idVenta para crear la factura
 	SET @idVentaRecien = SCOPE_IDENTITY()
-	-- creamos la factura
-	--EXEC Venta.crearFactura @idVentaRecien, @fechaHora, 'Pendiente'
-	
-	INSERT INTO Venta.Factura(idVenta, fechaHora,estadoDeFactura, totalConIva, totalSinIva, cuit)
-	SELECT @idVentaRecien,@fechaHora,'Pendiente', 0, 0, cuit
-	FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal
 END
 GO
 CREATE OR ALTER PROCEDURE Venta.agregarProducto(
@@ -88,10 +65,10 @@ AS BEGIN
 		@estado VARCHAR(10)
 	IF(@idVenta IS NULL)
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado agregarProductos. Factura no valida.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado agregarProductos. Venta no valida.',16,12);
 		RETURN;
 	END
-	IF(@idProducto IS NULL) OR NOT EXISTS(SELECT 1 FROM Producto.Producto WHERE idProducto = @idProducto)
+	IF(@idProducto IS NULL) OR NOT EXISTS(SELECT 1 FROM Producto.Producto WHERE idProducto = @idProducto AND productoActivo = 1)
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado agregarProductos. Producto no encontrada.',16,12);
 		RETURN;
@@ -102,16 +79,16 @@ AS BEGIN
 		RAISERROR ('Error en el procedimiento almacenado agregarProductos. Cantidad invalida',16,12);
 		RETURN;
 	END
-	IF EXISTS(SELECT 1 FROM Venta.DetalleVenta WHERE idProducto = @idProducto)
+	IF EXISTS(SELECT 1 FROM Venta.DetalleVenta WHERE idVenta = @idVenta AND idProducto = @idProducto)
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado agregarProductos. Producto ya ingresado',16,12);
 		RETURN;
 	END
-	--Verificamos el estado de la factura-venta
-	SET @estado = (SELECT estadoDeFactura FROM Venta.Factura WHERE idVenta = @idVenta)
+	--Verificamos el estado de la venta
+	SET @estado = (SELECT estadoVenta FROM Venta.Venta WHERE idVenta = @idVenta)
 	IF @estado IN ('Pagado', 'Cancelado')
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado agregarProductos. La Factura ingresada ya no se puede modificar',16,12);
+		RAISERROR ('Error en el procedimiento almacenado agregarProductos. La Venta ingresada ya no se puede modificar',16,12);
 		RETURN;
 	END
 	
@@ -120,11 +97,9 @@ AS BEGIN
 	--Inseramos el producto a detalleVenta
 	INSERT Venta.DetalleVenta(idVenta, idProducto, cantidad, precioUnitario, subTotal)
 		SELECT @idVenta, @idProducto, @cantidad, @precioUnitario, @subTotal
-	--Actualizamos los totales
-	UPDATE Venta.Factura
-		SET totalSinIva = totalSinIva + @subTotal,
-			--totalConIva = totalConIva + @subTotal * iva, -- Lo hacemos al cerrar la venta
-			estadoDeFactura = REPLACE(estadoDeFactura, 'Pendiente', 'En proceso')
+	-- Actualizamos el estado de venta
+	UPDATE Venta.Venta
+		SET estadoVenta = 'En proceso'
 	WHERE idVenta = @idVenta
 END
 GO
@@ -141,38 +116,22 @@ AS BEGIN
 		RAISERROR ('Error en el procedimiento almacenado eliminarProducto. Producto no encontrada.',16,12);
 		RETURN;
 	END
-	--Chequeamos el estado de la factura-venta
-	DECLARE @estado VARCHAR(10) = (SELECT estadoDeFactura FROM Venta.Factura WHERE idVenta = @idVenta)
-	--NO MODIFICAMOS FACTURAS YA CERRADAS O SEA 'Pagado' o 'cancelado'
+	--Chequeamos el estado de la venta
+	DECLARE @estado VARCHAR(10) = (SELECT estadoVenta FROM Venta.Venta WHERE idVenta = @idVenta)
+	--NO MODIFICAMOS VENTAS YA CERRADAS O SEA 'Pagado' o 'cancelado'
 	IF @estado IN ('Pagado', 'Cancelado')
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado eliminarProducto. La Factura ingresada ya no se puede modificar',16,12);
+		RAISERROR ('Error en el procedimiento almacenado eliminarProducto. La venta ingresada ya no se puede modificar',16,12);
 		RETURN;
 	END
-	DECLARE @subTotalAnt DECIMAL(11,2)
-	-- Recuperamos la cantidad y el precio unitario para actualizar el total sin iva
-	SELECT @subTotalAnt = subTotal
-		FROM Venta.DetalleVenta WHERE idVenta = @idVenta AND idProducto = @idProducto
 	-- Eliminamos el producto
 	DELETE FROM Venta.DetalleVenta
 		WHERE idVenta = @idVenta AND idProducto = @idProducto
-
-	--SI eliminamos detalle de un solo producto
-	--(ingresamos un producto y luego lo sacamos quedaria sin productos la venta)
-	--lo ponemos en Pendiente
-
-	IF EXISTS(SELECT 1 FROM Venta.DetalleVenta WHERE idVenta = @idVenta)
-	-- Actualizamos el total
+	IF NOT EXISTS(SELECT 1 FROM Venta.DetalleVenta WHERE idVenta = @idVenta)
 	BEGIN
-		UPDATE Venta.Factura
-			SET totalSinIva = totalSinIva - @subTotalAnt
-		WHERE idVenta = @idVenta
-	END
-	ELSE
-	BEGIN
-		UPDATE Venta.Factura
-			SET totalSinIva = totalSinIva - @subTotalAnt,
-				estadoDeFactura = 'Pendiente'
+		-- Despues de elminar producto no hay al menos un producto en detalle con ese id = cambio de estado
+		UPDATE Venta.Venta
+			SET estadoVenta = 'Pendiente'
 		WHERE idVenta = @idVenta
 	END
 END
@@ -181,24 +140,22 @@ GO
 CREATE OR ALTER PROCEDURE Venta.modificarCantDelProducto(
 				@idVenta INT = NULL, @idProducto INT = NULL, @cantidad INT = NULL)
 AS BEGIN
-	DECLARE @precioUnitario DECIMAL(11,2),
-		@subTotalAnt DECIMAL(11,2),
-		@estado VARCHAR(10)
+	DECLARE @estado VARCHAR(10)
 	IF(@idVenta IS NULL)
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado agregarProductos. Factura no valida.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado agregarProductos. Venta no valida.',16,12);
 		RETURN;
 	END
-	--Verificamos el estado de la factura-venta
-	SET @estado = (SELECT estadoDeFactura FROM Venta.Factura WHERE idVenta = @idVenta)
+	--Verificamos el estado de la venta
+	SET @estado = (SELECT estadoVenta FROM Venta.Venta WHERE idVenta = @idVenta)
 	IF @estado IN ('Pagado', 'Cancelado')
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado agregarProductos. La Factura ingresada ya no se puede modificar',16,12);
+		RAISERROR ('Error en el procedimiento almacenado agregarProductos. La venta ingresada ya no se puede modificar',16,12);
 		RETURN;
 	END
 	IF @estado = 'Pendiente'
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado agregarProductos. La Factura ingresada no tiene productos',16,12);
+		RAISERROR ('Error en el procedimiento almacenado agregarProductos. La venta ingresada no tiene productos',16,12);
 		RETURN;
 	END
 	IF(@idProducto IS NULL)
@@ -216,31 +173,34 @@ AS BEGIN
 		RAISERROR ('Error en el procedimiento almacenado agregarProductos. Producto no esta en detalle Venta',16,12);
 		RETURN;
 	END
-	SELECT @precioUnitario = precioUnitario, @subTotalAnt = subTotal
-	FROM Venta.DetalleVenta 
-	WHERE idVenta = @idVenta AND idProducto = @idProducto
 	--Actualizamos el producto en detalleVenta
 	UPDATE Venta.DetalleVenta
 		SET cantidad = @cantidad,
-			precioUnitario = @precioUnitario,
-			subTotal = @cantidad * @precioUnitario
+			subTotal = @cantidad * precioUnitario
 	WHERE idVenta = @idVenta AND idProducto = @idProducto
-	--Actualizamos los totales
-	UPDATE Venta.Factura
-		SET totalSinIva = (totalSinIva - @subTotalAnt) + (@cantidad * @precioUnitario)
-	WHERE idVenta = @idVenta
 END
 GO
 
 --------------Cerrar Venta-----------------------------
 
 CREATE OR ALTER PROCEDURE Venta.cerrarVenta(
-		@idVenta INT = NULL, @medioDePago VARCHAR(12) = NULL,
-		@comprobante VARCHAR(23) = NULL, @tipoFactura CHAR(1) = NULL,
-		@nuevoEstado VARCHAR(10) = NULL, @idNotaDeCredito INT = NULL
+								@idVenta INT				= NULL,
+								@dni CHAR(8)				= NULL,
+								@genero CHAR				= NULL,
+								@tipoCliente CHAR(6)		= NULL,
+								@medioDePago VARCHAR(12)	= NULL,
+								@comprobante VARCHAR(23)	= NULL,
+								@tipoFactura CHAR(1)		= NULL,
+								@nuevoEstado VARCHAR(10)	= NULL
 )
 AS BEGIN
-	DECLARE @estado VARCHAR(10), @idMedioDePago INT
+	DECLARE @estado VARCHAR(10),
+			@idMedioDePago INT,
+			@cuilCliente CHAR(13),
+			@fechaVenta SMALLDATETIME,
+			@total DECIMAL(11,2),
+			@cuit CHAR(13),
+			@idSucursal INT
 	IF @idVenta IS NULL
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado cerrarVenta. idVenta no valido.',16,12);
@@ -256,11 +216,25 @@ AS BEGIN
 		RAISERROR ('Error en el procedimiento almacenado cerrarVenta. Tipo de factura no valido.',16,12);
 		RETURN;
 	END
-
-	SET @estado = (SELECT estadoDeFactura FROM Venta.Factura WHERE idVenta = @idVenta)
+	IF @dni IS NULL OR LEN(RTRIM(@dni)) <> 8
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado cerrarVenta. DNI no valido',16,14);
+		RETURN;
+	END
+	IF @genero IS NULL OR UPPER(@genero) NOT IN ('M','F')
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado crearVenta. Genero no valido para calcular el cuil',16,14);
+		RETURN;
+	END
+	IF @tipoCliente IS NULL OR LEN(RTRIM(@tipoCliente)) <> 6
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado crearVenta. tipoCliente no valido',16,14);
+		RETURN;
+	END
+	SELECT @estado = estadoVenta, @fechaVenta = fechaHoraVenta, @idSucursal = idSucursal FROM Venta.Venta WHERE idVenta = @idVenta
 	IF @estado <> 'En proceso'
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado cerrarVenta. El estado de la factura no valido.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado cerrarVenta. El estado de la Venta no valido.',16,12);
 		RETURN;
 	END
 	IF @medioDePago IS NULL
@@ -281,54 +255,77 @@ AS BEGIN
 		RAISERROR ('Error en el procedimiento almacenado cerrarVenta. Comprobante de pago no valido.',16,12);
 		RETURN;
 	END
+	SET @cuilCliente = Empleado.calcularCUIL(@dni, @genero)
+	SET @total = (SELECT SUM(subTotal) FROM Venta.DetalleVenta WHERE idVenta = @idVenta)
+	SET @cuit = (SELECT cuit FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal)
+	-- Creacion de la factura
 	IF @nuevoEstado LIKE 'Pagado'
 	BEGIN
-		UPDATE Venta.Factura
-			SET tipoFactura = @tipoFactura,
-				idMedioDepago = @idMedioDePago,
-				identificadorDePago = @comprobante,
-				estadoDeFactura = @nuevoEstado,
-				totalConIva = totalSinIva * iva
+		UPDATE Venta.Venta
+			SET cuilCliente = @cuilCliente,
+				tipoCliente = @tipoCliente,
+				estadoVenta = @nuevoEstado
 		WHERE idVenta = @idVenta
+		INSERT INTO Venta.Factura(
+					idVenta, tipoFactura, cuit,
+					fechaHora, idMedioDepago,
+					identificadorDePago, estadoDeFactura,
+					totalSinIva, totalConIva)
+		SELECT @idVenta, @tipoFactura, @cuit,
+				@fechaVenta, @idMedioDePago,
+				@comprobante, 'Pagado',
+				@total, @total * 1.21
 	END
 	ELSE
 	BEGIN
-		UPDATE Venta.Factura
-			SET tipoFactura = @tipoFactura,
-				idMedioDepago = @idMedioDePago,
-				identificadorDePago = @comprobante,
-				estadoDeFactura = 'Cancelado',
-				totalConIva = totalSinIva * iva
+		UPDATE Venta.Venta
+			SET estadoVenta = @nuevoEstado
 		WHERE idVenta = @idVenta
+		INSERT INTO Venta.Factura(
+					idVenta, fechaHora,estadoDeFactura, cuit,
+					totalSinIva, totalConIva)
+		SELECT @idVenta, @fechaVenta, 'Cancelado', @cuit,
+				@total, @total * 1.21
 	END
 END
 GO
---------------Eliminar factura de forma logica
+--------------Eliminar Venta de forma logica
 
-CREATE OR ALTER PROCEDURE Venta.cancelarFactura(@idVenta INT = NULL)
+CREATE OR ALTER PROCEDURE Venta.cancelarVenta(@idVenta INT = NULL)
 AS BEGIN
-	DECLARE @estado VARCHAR(10)
+	DECLARE @estado VARCHAR(10),
+			@total DECIMAL(11,2),
+			@fechaVenta SMALLDATETIME,
+			@cuit CHAR(13)
 	IF(@idVenta IS NULL)
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado cancelarFactura. idVenta no valido.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado cancelarVenta. idVenta no valido.',16,12);
 		RETURN;
 	END
-	SET @estado = (SELECT estadoDeFactura FROM Venta.Factura WHERE idVenta = @idVenta)
+	SELECT @estado = v.estadoVenta, @fechaVenta = v.fechaHoraVenta, @cuit = s.cuit
+		FROM Venta.Venta v
+		JOIN Sucursal.Sucursal s ON s.idSucursal = v.idSucursal WHERE idVenta = @idVenta
 	IF @estado IS NULL
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado cancelarFactura. La factura no encontrada.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado cancelarVenta. La venta no encontrada.',16,12);
 		RETURN;
 	END
 	IF @estado IN ('Pagado', 'Cancelado')
 	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado cancelarFactura. La factura no puede ser modificada.',16,12);
+		RAISERROR ('Error en el procedimiento almacenado cancelarVenta. La venta no puede ser modificada.',16,12);
 		RETURN;
 	END
+	SET @total = (SELECT SUM(subTotal) FROM Venta.DetalleVenta WHERE idVenta = @idVenta)
 	-- cancelar solo si esta pendiente o en proceso
 	-- Cancelamos la Factura
-	UPDATE Venta.Factura
-		SET estadoDeFactura = 'Cancelado'
+	UPDATE Venta.Venta
+		SET estadoVenta = 'Cancelado'
 	WHERE idVenta = @idVenta
+	INSERT INTO Venta.Factura(
+					idVenta, fechaHora,estadoDeFactura,
+					totalSinIva, totalConIva, cuit)
+		SELECT @idVenta, @fechaVenta, 'Cancelado',
+				@total, @total * 1.21, @cuit
 END
 GO
 
