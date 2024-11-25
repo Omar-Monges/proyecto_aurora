@@ -60,11 +60,14 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarSucursal. La localidad es inválida.',16,2);
 		RETURN;
 	END
-	IF @cuit IS NULL OR @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+	IF @cuit IS NOT NULL OR @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarSucursal. El cuit es inválida.',16,2);
 		RETURN;
 	END
+
+	IF (@cuit IS NULL)
+		SET @cuit = '20-22222222-3'
 
 	INSERT INTO Sucursal.Sucursal (telefono,horario,sucursalActiva,direccion,localidad,cuit)
 			VALUES (@telefono,@horario,@altaSucursal,@dire,@localidad,@cuit);
@@ -75,7 +78,7 @@ GO
 CREATE OR ALTER PROCEDURE Sucursal.modificarSucursal (
 									@idSucursal INT			= NULL,@telefono VARCHAR(9)	= NULL,
 									@horario VARCHAR(100)	= NULL,@dire VARCHAR(100)	= NULL,
-									@localidad VARCHAR(30)	= NULL
+									@localidad VARCHAR(30)	= NULL,@cuit CHAR(13) = NULL
 												)
 AS BEGIN
 	DECLARE @direccion VARCHAR(100) = NULL;
