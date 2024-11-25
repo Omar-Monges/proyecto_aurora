@@ -67,7 +67,7 @@ SELECT * FROM Sucursal.Cargo
 													)
 */
 --Prueba de Sucursal:
-SELECT * FROM Sucursal.Sucursal
+SELECT * FROM Sucursal.Cargo
 -->1) Agregamos un telefono NULO:
 	EXEC Sucursal.agregarSucursal NULL,'L-V 8-21','EstoEsUnaCalle','Morón', '123456789abcd'						--- Salida esperada: ERROR
 -->2) Agregamos un telefono que no respete el formato:

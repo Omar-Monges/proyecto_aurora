@@ -157,6 +157,7 @@ BEGIN
 		fechaHoraVenta SMALLDATETIME,
 		cuilCliente CHAR(13),
 		tipoCliente CHAR(6),
+		estadoVenta VARCHAR(10),
 		CONSTRAINT PK_Venta PRIMARY KEY(idVenta),
 		CONSTRAINT FK_Venta_Empleado FOREIGN KEY(idEmpleado) REFERENCES Empleado.Empleado(idEmpleado),
 		CONSTRAINT FK_Venta_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal)
@@ -170,12 +171,13 @@ BEGIN
 	(
 		idFactura INT IDENTITY(1,1),
 		idVenta INT,
-		tipoFactura CHAR NOT NULL,
+		tipoFactura CHAR,
+		cuit CHAR(23),
 		--idTipoCliente SMALLINT NOT NULL,
-		fechaHora SMALLDATETIME NOT NULL,
+		fechaHora SMALLDATETIME,
 		idMedioDepago INT,
-		identificadorDePago VARCHAR(23) NOT NULL,
-		estadoDeFactura VARCHAR(10) NOT NULL,
+		identificadorDePago VARCHAR(23),
+		estadoDeFactura VARCHAR(10),
 		totalConIva DECIMAL(11,2),
 		totalSinIva DECIMAL(11,2),
 		iva DECIMAL(3,2) DEFAULT 1.21,
@@ -200,7 +202,7 @@ BEGIN
 		idProducto INT,
 		precioUnitario DECIMAL(10,2),
 		cantidad SMALLINT NOT NULL,
-		subtotal DECIMAL(11,2),
+		subTotal DECIMAL(11,2),
 		CONSTRAINT PK_DetalleVenta PRIMARY KEY(idDetalleVenta, idVenta),
 		CONSTRAINT FK_DetalleVenta_Venta FOREIGN KEY(idVenta) REFERENCES Venta.Venta(idVenta),
 		CONSTRAINT FK_DetalleVenta_Producto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto)
@@ -214,11 +216,13 @@ BEGIN
 	(
 		idNotaDeCredito INT IDENTITY(1,1),
 		idFactura INT,
+		idEmpleadoSupervisor INT,
 		razon VARCHAR(50),
 		fechaDeCreacion SMALLDATETIME NOT NULL,
 		montoTotalDeCredito DECIMAL(10,2),
 		CONSTRAINT PK_NotaDeCredito PRIMARY KEY(idNotaDeCredito),
 		CONSTRAINT FK_NotaDeCredito_idFactura FOREIGN KEY(idFactura) REFERENCES Venta.Factura(idFactura),
+		CONSTRAINT FK_NotaDeCredito_idEmpleadoSupervisor FOREIGN KEY(idEmpleadoSupervisor) REFERENCES Empleado.Empleado(idEmpleado),
 		CONSTRAINT CK_NotaDeCredito_Monto CHECK(montoTotalDeCredito > 0)
 	)
 END
