@@ -146,6 +146,7 @@ BEGIN
 		idMedioDePago INT IDENTITY(1,1),
 		nombreMedioDePago VARCHAR(12) NOT NULL,
 		descripcion VARCHAR(25) NOT NULL,
+		medioDePagoActivo BIT,
 		CONSTRAINT PK_MedioDePago PRIMARY KEY(idMedioDePago)
 	);
 END;

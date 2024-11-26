@@ -148,6 +148,50 @@ EXEC Producto.agregarProducto @clasificacion = 'categoriaNueva',@descripcionProd
 		@precioUnitario = 1050.09,@precioReferencia=1626.16,@unidadReferencia='ud'
 
 
+------------------------------------ SIMULACION DE FACTURACION --------------------------------------------
+
+SELECT * FROM Producto.Producto
+
+--Agregamos productos
+
+EXEC Producto.agregarProducto @clasificacion = 'categoriaNueva',@descripcionProducto='Calculadora Cassio con Bluetooth',
+	@precioUnitario = 1050.09,@precioReferencia=1626.16,@unidadReferencia='ud'
+EXEC Producto.agregarProducto @clasificacion = 'categoriaNueva',@descripcionProducto='Perro Boxer',
+	@precioUnitario = 160.09,@precioReferencia=3546.98,@unidadReferencia='ud'
+EXEC Producto.agregarProducto @clasificacion = 'categoriaNueva',@descripcionProducto='Gato Siames',
+	@precioUnitario = 5640.09,@precioReferencia=150.98,@unidadReferencia='ud'
+
+EXEC Venta.agregarMedioDePago 'Dogecoin','Criptomoneda'
+SELECT * FROM  Producto.M
+SELECT * FROM Venta.Venta
+
+--DECLARE @ventaReciente INT;
+--EXEC Venta.crearVenta @legajo = 1, @idSucursal = 1,@idVentaRecien = @ventaReciente OUTPUT
+--print @ventaReciente
+
+--EXEC Venta.agregarProducto @idVenta = 1, @idProducto = 1, @cantidad  = 1
+--EXEC Venta.eliminarProducto @idVenta = 1, @idProducto = 1
+--EXEC Venta.modificarCantDelProducto @idVenta = 1, @idProducto = 1, @cantidad = 1
+--EXEC Venta.cerrarVenta @idVenta = 1, @dni = '42781944', @genero = 'M',@tipoCliente = 'Member',
+--								@medioDePago =  'Dogecoin', @comprobante = '',
+--								@tipoFactura = '', @nuevoEstado = ''
+
+SELECT * FROM Producto.Producto
+SELECT * FROM Venta.Venta
+SELECT * FROM Venta.DetalleVenta
+SELECT * FROM Venta.Factura
+SELECT * FROM Venta.verFacturasDetalladas
+
+DECLARE @ventaReciente INT;
+EXEC Venta.crearVenta @legajo = 15, @idSucursal = 1,@idVentaRecien = @ventaReciente OUTPUT
+print @ventaReciente
+
+EXEC Venta.agregarProducto @idVenta = 1, @idProducto = 4, @cantidad  = 2
+EXEC Venta.agregarProducto @idVenta = 1, @idProducto = 5, @cantidad  = 1
+
+EXEC Venta.cerrarVenta @idVenta = 1, @dni = '42781944', @genero = 'M',@tipoCliente = 'Member',
+								@medioDePago =  'Dogecoin', @comprobante = 'Comprobante',
+								@tipoFactura = 'A', @nuevoEstado = 'Pagado'
 
 ----- SIMULACION DE FACTURACION --------------------
 

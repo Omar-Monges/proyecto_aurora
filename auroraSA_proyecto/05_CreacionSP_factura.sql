@@ -388,9 +388,6 @@ AS BEGIN
 	INSERT INTO #tmpNDC(legajoSupervisor, idFactura, laRazon)
 		SELECT @idSupervisor, @idFactura, @laRazon
 	*/
-	INSERT INTO Venta.NotaDeCredito(idFactura, fechaDeCreacion, legajoSupervisor, razon, activo)
-	SELECT @idFactura, GETDATE(), @idSupervisor, @laRazon, 'p'
-	SET @idNDC = SCOPE_IDENTITY()
 END
 GO
 CREATE OR ALTER PROCEDURE Venta.agregarProductoNDC(
@@ -501,12 +498,79 @@ CREATE OR ALTER VIEW Venta.verFacturasDetalladas AS
 			dv.precioUnitario,
 			dv.subTotal,
 			f.totalSinIva,
-			f.totalConIva
+			f.totalConIva,
+			m.nombreMedioDePago,
+			f.identificadorDePago
 		FROM Venta.Factura f 
 			JOIN Venta.DetalleVenta dv ON f.idVenta = dv.idVenta
 			JOIN Producto.Producto p ON p.idProducto = dv.idProducto
 			JOIN Venta.Venta v ON v.idVenta = f.idVenta
+			JOIN Venta.MedioDePago m ON m.idMedioDePago = f.idMedioDepago
 
 
 ---------cancelar facturas pendientes o en proceso SOLO SUPERVISORE-------------
 -- En este enfoque donde no se crean facturas hasta cerrar ventas no necesitamos cancelar la ventas pendientes\en proceso
+GO
+--Agregar medio de pago
+--		DROP PROCEDURE Venta.agregarMedioDePago
+CREATE OR ALTER PROCEDURE Venta.agregarMedioDePago (@nombreMDP VARCHAR(12),@descripcion VARCHAR(25))
+AS BEGIN
+	IF (@nombreMDP IS NULL OR LEN(@nombreMDP) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarMedioDePago. El formato del nomrbe del medio de pago es incorrecto',16,17);
+		RETURN;
+	END
+	
+	IF EXISTS(SELECT 1 FROM Venta.MedioDePago WHERE nombreMedioDePago LIKE @nombreMDP)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarMedioDePago. El medio de pago ya existe',16,17);
+		RETURN;
+	END
+
+	IF (@descripcion IS NULL OR LEN(@descripcion) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarMedioDePago. El formato del nomrbe del medio de pago es incorrecto',16,17);
+		RETURN;
+	END
+
+	INSERT INTO Venta.MedioDePago (nombreMedioDePago,descripcion) VALUES(@nombreMDP,@descripcion)
+END
+GO
+CREATE OR ALTER PROCEDURE Venta.modificarMedioDePago (@idMDP INT, @nombreMDP VARCHAR(12) = NULL, @descripcion VARCHAR(25) = NULL)
+AS BEGIN
+	IF NOT EXISTS (SELECT 1 FROM Venta.MedioDePago WHERE idMedioDePago = @idMDP)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarMedioDePago. El medio de pago no existe',16,18);
+		RETURN;
+	END
+	
+	IF (@nombreMDP IS NULL OR LEN(@nombreMDP) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarMedioDePago. El formato del nomrbe del medio de pago es incorrecto',16,18);
+		RETURN;
+	END
+	
+	IF EXISTS(SELECT 1 FROM Venta.MedioDePago WHERE nombreMedioDePago LIKE @nombreMDP AND idMedioDePago = @idMDP)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarMedioDePago. El medio de pago ya existe',16,18);
+		RETURN;
+	END
+
+	IF (@descripcion IS NULL OR LEN(@descripcion) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarMedioDePago. El formato del nomrbe del medio de pago es incorrecto',16,18);
+		RETURN;
+	END
+
+	INSERT INTO Venta.MedioDePago (nombreMedioDePago,descripcion) VALUES(@nombreMDP,@descripcion)
+END
+GO
+--Dar de baja un medio de pago
+--		DROP PROCEDURE Venta.darDeBajaMedioDePago
+CREATE OR ALTER PROCEDURE Venta.darDeBajaMedioDePago (@idMDP INT)
+AS BEGIN
+	UPDATE Venta.MedioDePago
+		set medioDePagoActivo = 0
+		WHERE idMedioDePago = @idMDP AND  
+			medioDePagoActivo = 1
+END
