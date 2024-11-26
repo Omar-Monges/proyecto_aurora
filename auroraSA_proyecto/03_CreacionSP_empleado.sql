@@ -119,7 +119,6 @@ END
 GO
 
 --Agregar un Empleado
---		Drop Empleado.agregarEmpleado
 CREATE OR ALTER PROCEDURE Empleado.agregarEmpleado (
 								@legajo INT,
 								@dni VARCHAR(8)				= NULL, @nombre VARCHAR(50)			= NULL,
@@ -136,7 +135,6 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El empleado ya existe.',16,1);
 		RETURN;
 	END
-
 	IF(@dni IS NULL OR @dni NOT LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. EL formato del DNI es inválido.',16,1);
@@ -256,7 +254,7 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email de empresa es inválido.',16,1);
 		RETURN;
 	END
-	IF (@idSucursal IS NOT NULL AND NOT EXISTS(SELECT 1 FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal))
+	IF (@idSucursal IS NOT NULL AND NOT EXISTS(SELECT 1 FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal AND sucursalActiva = 1))
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. La sucursal es inválido.',16,1);
 		RETURN;
@@ -301,7 +299,7 @@ GO
 --DROP VIEW Empleado.verDatosPersonalesDeEmpleados
 --		SELECT * FROM Empleado.verDatosPersonalesDeEmpleados
 CREATE OR ALTER VIEW Empleado.verDatosPersonalesDeEmpleados AS
-	SELECT legajo, legajo, apellido, nombre, cuil, emailEmpresarial, emailPersonal, direccion
+	SELECT legajo, apellido, nombre, cuil, emailEmpresarial, emailPersonal, direccion
 		FROM Empleado.Empleado
 		WHERE empleadoActivo = 1
 GO

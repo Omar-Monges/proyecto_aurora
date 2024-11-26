@@ -224,6 +224,7 @@ BEGIN
 		razon VARCHAR(50),
 		fechaDeCreacion SMALLDATETIME NOT NULL,
 		montoTotalDeCredito DECIMAL(10,2),
+		activo CHAR, -- p 'pendiente', a 'activo'
 		CONSTRAINT PK_NotaDeCredito PRIMARY KEY(idNotaDeCredito),
 		CONSTRAINT FK_NotaDeCredito_idFactura FOREIGN KEY(idFactura) REFERENCES Venta.Factura(idFactura),
 		CONSTRAINT FK_NotaDeCredito_legajoSupervisor FOREIGN KEY(legajoSupervisor) REFERENCES Empleado.Empleado(legajo),
@@ -240,7 +241,7 @@ BEGIN
 		idProducto INT,
 		cantidad INT,
 		subtotal DECIMAL(10,2),
-		CONSTRAINT PK_NotaDeCredito PRIMARY KEY(idNotaDeCredito,idProducto),
+		CONSTRAINT PK_NotaDeCredito_Debil PRIMARY KEY(idNotaDeCredito,idProducto),
 		CONSTRAINT FK_NotaDeCredito_idProducto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
 	)
 END

@@ -187,7 +187,7 @@ GO
 --	DROP VIEW Sucursal.verCargoDeEmpleados
 --	SELECT * FROM Sucursal.verCargoDeEmpleados
 CREATE OR ALTER VIEW Sucursal.verCargoDeEmpleados AS
-	SELECT e.idEmpleado, e.legajo,e.cuil,e.apellido,e.nombre,c.nombreCargo 
+	SELECT e.legajo,e.cuil,e.apellido,e.nombre,c.nombreCargo 
 		FROM Empleado.Empleado e JOIN Sucursal.Cargo c
 		ON e.idCargo = c.idCargo
 		WHERE e.empleadoActivo = 1

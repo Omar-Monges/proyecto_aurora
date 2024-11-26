@@ -213,3 +213,50 @@ EXEC Empleado.agregarEmpleado '39231254','Oscar Martín','Ortiz','M','Oscar Martí
 EXEC Empleado.agregarEmpleado '30766254','Débora','Pachtman','F','Débora_PACHTMAN@gmail.com','Débora.PACHTMAN@superA.com',3,3,3,'Av. Presidente Hipólito Yrigoyen',299,NULL,'Provincia de Buenos Aires','Buenos Aires',NULL,NULL;
 EXEC Empleado.agregarEmpleado '38974125','Romina Natalia','Padilla','F','Romina Natalia_PADILLA@gmail.com','Romina Natalia.PADILLA@superA.com',1,3,3,'Lacroze',5910,NULL,'Chilavert','Buenos Aires',NULL,NULL;
 GO
+
+
+----- SIMULACION DE FACTURACION --------------------
+
+-- 1. Creamos la venta 
+
+select * from Empleado.Empleado
+DECLARE @ventaReciente INT
+EXEC Venta.crearVenta 257022, 1, @ventaReciente OUTPUT
+SELECT @ventaReciente AS NRO_Venta
+
+-- 2. agrgar producto
+
+EXEC Venta.agregarProducto 1, 22, 10
+select * from Venta.DetalleVenta
+
+EXEC Venta.agregarProducto 1, 522, 22
+
+-- 3. cerrramos la venta
+/*
+CREATE OR ALTER PROCEDURE Venta.cerrarVenta(
+								@idVenta INT				= NULL,
+								@dni CHAR(8)				= NULL,
+								@genero CHAR				= NULL,
+								@tipoCliente CHAR(6)		= NULL,
+								@medioDePago VARCHAR(12)	= NULL,
+								@comprobante VARCHAR(23)	= NULL,
+								@tipoFactura CHAR(1)		= NULL,
+								@nuevoEstado VARCHAR(10)	= NULL*/
+EXEC Venta.cerrarVenta 1, '12345678', 'M', 'Normal', 'Cash', '--', 'A', 'Pagado'
+select * from Venta.DetalleVenta
+
+select * from Venta.NotaDeCredito
+select * from Venta.DetalleNotaDeCredito
+
+-- 4. crear una nota de credito
+DECLARE @idNDC INT 
+EXEC Venta.crearNotaDeCredito 1, 257033, 'Esta roto', @idNDC OUTPUT
+SELECT @idNDC AS idNotaDeCredito
+
+-- 5. agregar producto a la nota de credito
+
+EXEC Venta.agregarProductoNDC 1, 522, 2
+
+select * from Venta.DetalleNotaDeCredito
+-- 6. cerrar nota de credito
+exec Venta.cerrarNotaDeCredito 1
