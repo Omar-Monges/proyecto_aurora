@@ -325,8 +325,10 @@ GO
 --------------Crear nota de Credito SOLO SUPERVISORES----------------------
 
 CREATE OR ALTER PROCEDURE Venta.crearNotaDeCredito(
-			@idFactura INT = NULL, @idSupervisor INT = NULL,
-			@montoDeCredito DECIMAL(11,2) = NULL, @laRazon VARCHAR(50) = NULL)
+			@idFactura INT		= NULL,
+			@idSupervisor INT	= NULL,
+			@laRazon VARCHAR(50)= NULL,
+			@idNDC INT OUTPUT)
 AS BEGIN
 	/*
 		1. idVenta exista y estado sea pagado x
@@ -335,14 +337,14 @@ AS BEGIN
 		3. Agregamos quien dio el credito x
 		4. generamos la nota de credito x
 	*/
-	DECLARE @estado VARCHAR(10), @montoFactura DECIMAL(11,2), @cantNDC INT
+	DECLARE @estado VARCHAR(10)
 	IF(@idFactura IS NULL)
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. Factura no encontrada.',16,12);
 		RETURN;
 	END
 	-- Solo dar nota de credito a facturas pagadas y el monto no supere el total pagado
-	SELECT @estado = estadoDeFactura, @montoFactura = totalConIva FROM Venta.Factura WHERE idFactura = @idFactura
+	SELECT @estado = estadoDeFactura FROM Venta.Factura WHERE idFactura = @idFactura
 	IF @estado IS NULL 
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. La factura no existe.',16,12);
@@ -365,37 +367,146 @@ AS BEGIN
 		RETURN;
 	END
 	
-	IF @montoDeCredito > @montoFactura
-	BEGIN
-		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. No se puede emitir el monto de credito, supera al monto de la Factura pagada.',16,12);
-		RETURN;
-	END
 	IF @laRazon IS NULL OR LEN(RTRIM(@laRazon)) < 5
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. La razon es invalida.',16,12);
 		RETURN;
 	END
-	-- Creamos la nota de credito
-	INSERT INTO Venta.NotaDeCredito(legajoSupervisor, idFactura, fechaDeCreacion, montoTotalDeCredito,razon)
-	SELECT @idSupervisor, @idFactura, GETDATE(), @montoDeCredito, @laRazon
+	/*
+	-- Creamos una tabla temporal para la nota de credito
+	CREATE TABLE #tmpNDC(
+		idFactura INT,
+		legajoSupervisor INT,
+		laRazon VARCHAR(50)
+		)
+	CREATE TABLE #detalleNDC(
+		idProductoNDC INT,
+		cantidadNDC INT,
+		precioUnitarioNDC DECIMAL(11,2),
+		subTotalNDC DECIMAL(11,2)
+	)
+	INSERT INTO #tmpNDC(legajoSupervisor, idFactura, laRazon)
+		SELECT @idSupervisor, @idFactura, @laRazon
+	*/
+	INSERT INTO Venta.NotaDeCredito(idFactura, fechaDeCreacion, legajoSupervisor, razon, activo)
+	SELECT @idFactura, GETDATE(), @idSupervisor, @laRazon, 'p'
+	SET @idNDC = SCOPE_IDENTITY()
+END
+GO
+CREATE OR ALTER PROCEDURE Venta.agregarProductoNDC(
+			@idNotaDeCredito INT	= NULL,
+			@idProducto INT			= NULL,
+			@cantidad INT			= NULL)
+AS BEGIN
+	DECLARE @cantDetalleVenta INT,
+			@cantidadNDCacumulada INT,
+			@precioUnitarioProducto DECIMAL(11,2),
+			@idFactura INT
+	IF @idProducto IS NULL OR @cantidad IS NULL
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado agregarProductoNDC. Parametro/s no valido/s.',16,12);
+		RETURN;
+	END
+	IF	@cantidad < 1
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado agregarProductoNDC. Cantidad en menor a cero.',16,12);
+		RETURN;
+	END
+	SET @idFactura = (SELECT idFactura FROM Venta.NotaDeCredito WHERE idNotaDeCredito = @idNotaDeCredito AND activo = 'p')
+	SET @cantidadNDCacumulada = (SELECT cantidad FROM Venta.DetalleNotaDeCredito WHERE idProducto = @idProducto)
+	IF @cantidadNDCacumulada IS NULL
+		SET @cantidadNDCacumulada = @cantidad
+	ELSE
+		SET @cantidadNDCacumulada = @cantidadNDCacumulada + @cantidad
+	SELECT @cantDetalleVenta = dv.cantidad, @precioUnitarioProducto = dv.precioUnitario
+		FROM Venta.DetalleVenta dv
+		JOIN Venta.Venta v ON v.idVenta = dv.idVenta
+		JOIN Venta.Factura f ON f.idVenta = v.idVenta
+	WHERE f.idFactura = @idFactura AND dv.idProducto = @idProducto
+	IF @cantDetalleVenta IS NULL OR @precioUnitarioProducto IS NULL
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado agregarProductoNDC. Producto no esta en la Factura.',16,12);
+		RETURN;
+	END
+	IF @cantDetalleVenta <= @cantidadNDCacumulada
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado agregarProductoNDC. La cantidad excede a lo Factura.',16,12);
+		RETURN;
+	END
+	--INSERT INTO #detalleNDC(idProductoNDC, cantidadNDC, precioUnitarioNDC, subTotalNDC)
+	--SELECT @idProducto, @cantidadNDCacumulada, @precioUnitarioProducto, @cantidadNDCacumulada * @precioUnitarioProducto
+	IF EXISTS(SELECT 1 FROM Venta.DetalleNotaDeCredito WHERE idProducto = @idProducto AND idNotaDeCredito = @idNotaDeCredito)
+	BEGIN
+		UPDATE Venta.DetalleNotaDeCredito 
+			SET cantidad = @cantidadNDCacumulada,
+				subtotal = @precioUnitarioProducto * @cantidadNDCacumulada
+		WHERE idProducto = @idProducto AND idNotaDeCredito = @idNotaDeCredito
+	END
+	ELSE
+	BEGIN
+		INSERT INTO Venta.DetalleNotaDeCredito(idNotaDeCredito, idProducto, cantidad, subtotal)
+		SELECT @idNotaDeCredito, @idProducto, @cantidadNDCacumulada, @cantidadNDCacumulada * @precioUnitarioProducto
+	END
+END
+GO
+CREATE OR ALTER PROCEDURE Venta.cerrarNotaDeCredito(@idNotaDeCredito INT = NULL)
+AS BEGIN
+	--IF NOT EXISTS(SELECT 1 FROM tempdb.sys.tables WHERE name LIKE '#tmpNDC%' OR name LIKE '#detalleNDC%')
+	--BEGIN
+	--	RAISERROR ('Error en el procedimiento almacenado cerrarNotaDeCredito. No se creo la nota de credito.',16,12);
+	--	RETURN;
+	--END
+	IF @idNotaDeCredito IS NULL
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado cerrarNotaDeCredito. ID nota de credito invalido.',16,12);
+		RETURN;
+	END
+	IF NOT EXISTS(SELECT 2 FROM Venta.NotaDeCredito WHERE idNotaDeCredito = @idNotaDeCredito AND activo = 'p')
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado cerrarNotaDeCredito. Nota de credito ya emitida.',16,12);
+		RETURN;
+	END
+	DECLARE @totalNotaDeCredito DECIMAL(11,2), @iva DECIMAL(3,2)
+	SET @iva = (SELECT V.iva FROM Venta.Factura V JOIN Venta.NotaDeCredito T ON T.idFactura = V.idFactura)
+	SET @totalNotaDeCredito = (SELECT SUM(subtotal) FROM Venta.DetalleNotaDeCredito WHERE idNotaDeCredito = @idNotaDeCredito) * @iva
+	UPDATE Venta.NotaDeCredito
+		SET montoTotalDeCredito = @totalNotaDeCredito,
+			activo = 'a'
+	WHERE idNotaDeCredito = @idNotaDeCredito
+
+	--- enfoque con tabla temporal fallido
+	--INSERT INTO Venta.NotaDeCredito(idFactura, idEmpleadoSupervisor, fechaDeCreacion, montoTotalDeCredito, razon)
+	--SELECT idFactura, legajoSupervisor, GETDATE(), @totalNotaDeCredito, laRazon
+	--	FROM #tmpNDC
+	--SET @idNDC = SCOPE_IDENTITY()
+	--INSERT INTO Venta.DetalleNotaDeCredito(idNotaDeCredito, idProducto, cantidad, subtotal)
+	--SELECT @idNDC, idProductoNDC, cantidadNDC, subTotalNDC
+	--	FROM #detalleNDC
+	---- LIBERAMOS LAS TABLAS TEMPORALES
+	--DROP TABLE #tmpNDC
+	--DROP TABLE #detalleNDC
 END
 GO
 
+-- idFatura, idSucursal, tipoFactura, legajo, fechahora, nombreProducto, cantProd, precioU, subTotal, precio, precioIVA
 CREATE OR ALTER VIEW Venta.verFacturasDetalladas AS
-	SELECT f.idFactura,cuit,tipoFactura,f.fechaHora
-		FROM Venta.Factura f JOIN Venta.DetalleVenta dv ON f.idVenta = dv.idVenta
+	SELECT	f.idFactura,
+			v.idSucursal,
+			f.cuit,
+			f.tipoFactura,
+			v.legajo,
+			f.fechaHora,
+			p.descripcionProducto,
+			dv.cantidad,
+			dv.precioUnitario,
+			dv.subTotal,
+			f.totalSinIva,
+			f.totalConIva
+		FROM Venta.Factura f 
+			JOIN Venta.DetalleVenta dv ON f.idVenta = dv.idVenta
 			JOIN Producto.Producto p ON p.idProducto = dv.idProducto
+			JOIN Venta.Venta v ON v.idVenta = f.idVenta
 
 
 ---------cancelar facturas pendientes o en proceso SOLO SUPERVISORE-------------
 -- En este enfoque donde no se crean facturas hasta cerrar ventas no necesitamos cancelar la ventas pendientes\en proceso
-
-
-/*
-SP crearNotaDecreito CREATE #temp
-SP agregarProductoANDC INSERT #temp
-
-
-SP cerrarNDC INSERT NotaDecredito SELECT #temp
-
-*/

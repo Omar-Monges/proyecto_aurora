@@ -449,8 +449,8 @@ SELECT * FROM Venta.Factura
 SELECT * FROM Venta.MedioDePago
 */
 
-SELECT * FROM Empleado.Empleado
 /*
+SELECT * FROM Empleado.Empleado
 exec Importacion.ArchComplementario_importarSucursal 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 exec Importacion.ArchComplementario_importarMedioDePago 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
 exec Importacion.ArchComplementario_importarEmpleado 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
