@@ -71,7 +71,6 @@ GO
 
 */
 
-
 CREATE OR ALTER PROCEDURE Empleado.obtenerGenero (@nombre VARCHAR(30), @genero CHAR OUTPUT)
 AS
 BEGIN

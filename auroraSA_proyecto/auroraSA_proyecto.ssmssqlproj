@@ -80,8 +80,8 @@
           <FullPath>01_Creacion_Tablas.sql</FullPath>
         </FileNode>
         <FileNode Name="02_CreacionSP_sucursal.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-K4RCQ79\SQLEXPRESS:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>DESKTOP-K4RCQ79\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>02_CreacionSP_sucursal.sql</FullPath>
         </FileNode>
@@ -92,8 +92,8 @@
           <FullPath>03_CreacionSP_empleado.sql</FullPath>
         </FileNode>
         <FileNode Name="04_CreacionSP_producto.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-K4RCQ79\SQLEXPRESS:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>DESKTOP-K4RCQ79\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>04_CreacionSP_producto.sql</FullPath>
         </FileNode>
@@ -128,8 +128,8 @@
           <FullPath>10_importar_ventas.sql</FullPath>
         </FileNode>
         <FileNode Name="12_CreacionSPViews_Direccion.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-K4RCQ79\SQLEXPRESS:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>DESKTOP-K4RCQ79\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>12_CreacionSPViews_Direccion.sql</FullPath>
         </FileNode>

@@ -387,5 +387,14 @@ AS BEGIN
 	SELECT @idSupervisor, @idFactura, GETDATE(), @montoDeCredito, @laRazon
 END
 GO
+
+
+CREATE OR ALTER VIEW Venta.verFacturasDetalladas AS
+	SELECT f.idFactura,cuit,tipoFactura,f.fechaHora
+		FROM Venta.Factura f JOIN Venta.DetalleVenta dv ON f.idVenta = dv.idVenta
+			JOIN Producto.Producto p ON p.idProducto = dv.idProducto
+
+
+
 ---------cancelar facturas pendientes o en proceso SOLO SUPERVISORE-------------
 -- En este enfoque donde no se crean facturas hasta cerrar ventas no necesitamos cancelar la ventas pendientes\en proceso

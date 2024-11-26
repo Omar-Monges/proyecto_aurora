@@ -31,7 +31,6 @@ AS BEGIN
 		ENCRYPTION BY CERTIFICATE certificadoEmpleadoEncriptacion;
 END
 GO
-
 --		DROP Seguridad.configurarTablaEmpleadoParaEncriptado
 CREATE OR ALTER PROCEDURE Seguridad.configurarTablaEmpleadoParaEncriptado
 AS BEGIN
@@ -51,38 +50,46 @@ AS BEGIN
 	ALTER TABLE Empleado.Empleado
 		ALTER COLUMN emailPersonal NVARCHAR(256);
 	ALTER TABLE Empleado.Empleado
-			ALTER COLUMN direccion NVARCHAR(256)
+		ALTER COLUMN direccion NVARCHAR(256)
 END
 GO
-
+SELECT COLUMN_NAME
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'Empleado' 
+AND COLUMN_NAME = 'datosEncriptados'
+AND TABLE_SCHEMA = 'Empleado';
+GO
 --		DROP PROCEDURE Seguridad.encriptarTablaEmpleado
 CREATE or ALTER PROCEDURE Seguridad.encriptarTablaEmpleado
 AS BEGIN
 	OPEN SYMMETRIC KEY ClaveSimetrica
 	   DECRYPTION BY CERTIFICATE certificadoEmpleadoEncriptacion;
 
+	DECLARE @sqlEncriptarDatosEmpleado NVARCHAR(MAX);
+
 	UPDATE Empleado.Empleado
 		SET dni = EncryptByKey(Key_GUID('ClaveSimetrica'), dni),
 			cuil = EncryptByKey(Key_GUID('ClaveSimetrica'), cuil),
 			emailPersonal = EncryptByKey(Key_GUID('ClaveSimetrica'), emailPersonal),
-			direccion = EncryptByKey(Key_GUID('ClaveSimetrica'), direccion)
+			direccion = EncryptByKey(Key_GUID('ClaveSimetrica'), direccion);
+	exec sp_executesql @sqlEncriptarDatosEmpleado;
+
 	CLOSE SYMMETRIC KEY ClaveSimetrica
 END
 GO
-
 --		DROP PROCEDURE Seguridad.desencriptarTablaEmpleado
 CREATE OR ALTER PROCEDURE Seguridad.desencriptarTablaEmpleado
 AS BEGIN
 	OPEN SYMMETRIC KEY ClaveSimetrica
 		DECRYPTION BY CERTIFICATE certificadoEmpleadoEncriptacion;
 
-	UPDATE Empleado.Empleado
-		SET dni = CONVERT(NVARCHAR(256),DECRYPTBYKEY(dni)),
-			cuil = CONVERT(NVARCHAR(256),DECRYPTBYKEY(cuil)),
-			emailPersonal = CONVERT(NVARCHAR(256),DECRYPTBYKEY(emailPersonal)),
-			direccion = CONVERT(NVARCHAR(256),DECRYPTBYKEY(direccion))
+	DECLARE @sqlDesencriptarDatosEmpleado NVARCHAR(MAX);
 
-	SELECT * FROM Empleado.Empleado
+	UPDATE Empleado.Empleado
+		SET dni = CONVERT(CHAR(8),DECRYPTBYKEY(dni)),
+			cuil = CONVERT(CHAR(13),DECRYPTBYKEY(cuil)),
+			emailPersonal = CONVERT(NVARCHAR(256),DECRYPTBYKEY(emailPersonal)),
+			direccion = CONVERT(NVARCHAR(256),DECRYPTBYKEY(direccion));
 
 	CLOSE SYMMETRIC KEY ClaveSimetrica
 
@@ -101,11 +108,29 @@ AS BEGIN
 			ADD CONSTRAINT CK_Empleado_CUIL CHECK(cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]')
 	ALTER TABLE Empleado.Empleado
 			ADD CONSTRAINT CK_Empleado_EmailPersonal CHECK(emailPersonal like '%_@__%.__%')
+
+	ALTER TABLE Empleado.Empleado
+		DROP COLUMN datosEncriptados
+
+	CLOSE SYMMETRIC KEY ClaveSimetrica
 END
+GO
+EXEC Seguridad.desencriptarTablaEmpleado
+
+SELECT * FROM Empleado.Empleado
 
 --		DROP CERTIFICATE certificadoEmpleadoEncriptacion
 --		DROP SYMMETRIC KEY ClaveSimetrica
-
+SELECT 
+    d.name AS Default_Constraint_Name,
+    c.name AS Column_Name,
+    t.name AS Table_Name
+FROM 
+    sys.default_constraints d
+    INNER JOIN sys.columns c ON d.parent_object_id = c.object_id AND d.parent_column_id = c.column_id
+    INNER JOIN sys.tables t ON t.object_id = c.object_id
+WHERE 
+    c.name = 'datosEncriptados' 
 
 /*
 		dni CHAR(8) NOT NULL,
@@ -133,6 +158,9 @@ END
 
 --		select  * from Empleado.Empleado
 
+	OPEN SYMMETRIC KEY ClaveSimetrica
+	   DECRYPTION BY CERTIFICATE certificadoEmpleadoEncriptacion;
+SELECT LEN(CONVERT(NVARCHAR(256),DECRYPTBYKEY(dni))) FROM Empleado.Empleado
 
 SELECT * FROM Empleado.Empleado
 
@@ -154,6 +182,8 @@ GO
 EXEC Seguridad.crearCertificado
 GO
 EXEC Seguridad.crearClaveSimetrica
+GO
+EXEC Seguridad.configurarTablaEmpleadoParaEncriptado
 GO
 EXEC Seguridad.encriptarTablaEmpleado
 GO
