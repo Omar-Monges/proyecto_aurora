@@ -238,7 +238,7 @@ AS BEGIN
 	END
 	SELECT @idMedioDePago = idMedioDePago
 	FROM Venta.MedioDePago
-	WHERE nombreMedioDePago LIKE @medioDePago
+	WHERE nombreMedioDePago LIKE @medioDePago AND medioDePagoActivo = 1
 	IF @idMedioDePago IS NULL
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado cerrarVenta. medio de pago no disponible.',16,12);

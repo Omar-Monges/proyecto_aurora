@@ -146,6 +146,7 @@ BEGIN
 		idMedioDePago INT IDENTITY(1,1),
 		nombreMedioDePago VARCHAR(12) NOT NULL,
 		descripcion VARCHAR(25) NOT NULL,
+		medioDePagoActivo BIT,
 		CONSTRAINT PK_MedioDePago PRIMARY KEY(idMedioDePago)
 	);
 END;
@@ -242,6 +243,7 @@ BEGIN
 		cantidad INT,
 		subtotal DECIMAL(10,2),
 		CONSTRAINT PK_DetalleNotaDeCredito PRIMARY KEY(idNotaDeCredito,idProducto),
+		CONSTRAINT FK_DetalleNotaDeCredito_idNotaDeCredito FOREIGN KEY(idNotaDeCredito) REFERENCES Venta.NotaDeCredito(idNotaDeCredito),
 		CONSTRAINT FK_DetalleNotaDeCredito_idProducto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
 	)
 END

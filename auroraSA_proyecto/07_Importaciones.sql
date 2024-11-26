@@ -24,8 +24,8 @@ AS BEGIN
 
 	EXECUTE sp_executesql @SqlDinamico;
 
-	INSERT INTO Venta.MedioDePago (nombreMedioDePago,descripcion)
-		SELECT t.* FROM #MedioDePagoTemp t
+	INSERT INTO Venta.MedioDePago (nombreMedioDePago,descripcion, medioDePagoActivo)
+		SELECT t.*, 1 FROM #MedioDePagoTemp t
 			WHERE NOT EXISTS (SELECT 1 FROM Venta.MedioDePago
 								WHERE nombreMDP LIKE nombreMedioDePago COLLATE Modern_Spanish_CI_AI
 							)
