@@ -35,7 +35,7 @@ GO
 --Esquema Producto
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Producto')
 	EXEC('CREATE SCHEMA Producto');
---Esquema Importación
+--Esquema ImportaciÃ³n
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Importacion')
 	EXEC('CREATE SCHEMA Importacion');
 GO
@@ -192,7 +192,7 @@ BEGIN
 		CONSTRAINT CK_Factura_TipoFactura CHECK(tipoFactura IN ('A', 'B', 'C')),
 		--CORRECCION=> CONSTRAINT CK_Factura_Genero CHECK(genero IN('Male', 'Female')),
 		
---		CONSTRAINT CK_Factura_IdentificadorDepago CHECK() <-- ¿Solo aceptan 3 tipos de pago? Efectivo,tarjeta y ewallet
+--		CONSTRAINT CK_Factura_IdentificadorDepago CHECK() <-- Â¿Solo aceptan 3 tipos de pago? Efectivo,tarjeta y ewallet
 	)
 END;
 GO
@@ -241,8 +241,8 @@ BEGIN
 		idProducto INT,
 		cantidad INT,
 		subtotal DECIMAL(10,2),
-		CONSTRAINT PK_NotaDeCredito_Debil PRIMARY KEY(idNotaDeCredito,idProducto),
-		CONSTRAINT FK_NotaDeCredito_idProducto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
+		CONSTRAINT PK_DetalleNotaDeCredito PRIMARY KEY(idNotaDeCredito,idProducto),
+		CONSTRAINT FK_DetalleNotaDeCredito_idProducto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
 	)
 END
 GO

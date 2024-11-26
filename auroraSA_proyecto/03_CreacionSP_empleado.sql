@@ -125,12 +125,18 @@ CREATE OR ALTER PROCEDURE Empleado.agregarEmpleado (
 								@apellido VARCHAR(50)		= NULL, @sexo CHAR					= NULL,
 								@emailPersonal VARCHAR(100)	= NULL, @emailEmpresa VARCHAR(100)	= NULL,
 								@idSucursal INT				= NULL, @turno VARCHAR(20)			= NULL,
-								@cargo VARCHAR(30)			= NULL, @direccion VARCHAR(100)		= NULL
+								@cargo INT					= NULL, @direccion VARCHAR(100)		= NULL
 													)
 AS BEGIN
 	DECLARE @cuil VARCHAR(13), @altaEmpleado BIT = 1, @idCargo INT
 
-	IF EXISTS (SELECT 1 FROM Empleado.Empleado WHERE legajo = @legajo)
+	IF (@legajo < = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El legajo es incorrecto.',16,1);
+		RETURN;
+	END
+
+	IF EXISTS (SELECT 1 FROM Empleado.Empleado WHERE legajo = @legajo AND dni <> @dni)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El empleado ya existe.',16,1);
 		RETURN;
@@ -151,11 +157,12 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato del Apellido es inválido.',16,1);
 		RETURN;
 	END;
-	IF (@direccion IS NULL OR LEN(LTRIM(@direccion)) = 0)
+
+	IF (@sexo <> 'M' AND @sexo <> 'F')
 	BEGIN
-		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato de la direccion es inválido.',16,1);
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El sexo es inválido.',16,1);
 		RETURN;
-	END
+	END;
 	IF (@emailPersonal IS NULL OR LEN(LTRIM(@emailPersonal)) = 0 OR @emailPersonal NOT LIKE '%_@__%.__%')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email personal es inválido.',16,1);
@@ -164,6 +171,13 @@ AS BEGIN
 	IF (@emailEmpresa IS NULL OR LEN(LTRIM(@emailEmpresa)) = 0 OR @emailEmpresa NOT LIKE '%_@superA.com')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email de empresa es inválido.',16,1);
+		RETURN;
+	END
+
+
+	IF (@direccion IS NULL OR LEN(LTRIM(@direccion)) = 0)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato de la direccion es inválido.',16,1);
 		RETURN;
 	END
 	IF (@idSucursal IS NULL OR NOT EXISTS(SELECT 1 FROM Sucursal.Sucursal WHERE idSucursal = @idSucursal))
@@ -181,12 +195,12 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El cargo es inválido.',16,1);
 		RETURN;
 	END
-	IF NOT EXISTS(SELECT 1 FROM Sucursal.Cargo WHERE nombreCargo LIKE @cargo)
+	IF NOT EXISTS(SELECT 1 FROM Sucursal.Cargo WHERE idCargo LIKE @cargo)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El cargo es inválido.',16,1);
 		RETURN;
 	END
-	SET @idCargo = (SELECT idCargo FROM Sucursal.Cargo WHERE nombreCargo = @cargo)
+	SET @idCargo = (SELECT idCargo FROM Sucursal.Cargo WHERE idCargo = @cargo)
 	SET @cuil = Empleado.calcularCUIL(@dni,@sexo);
 
 	SET @emailEmpresa = REPLACE(@emailEmpresa,' ','');
@@ -282,7 +296,7 @@ CREATE OR ALTER PROCEDURE Empleado.darDeBajaEmpleado(@legajo INT)
 AS BEGIN
 	UPDATE Empleado.Empleado
 		SET empleadoActivo = 0
-		WHERE legajo = @legajo
+		WHERE legajo = @legajo AND empleadoActivo = 1
 END
 GO
 --Ver toda la tabla de empleados junto a su turno,cargo y sucursal en la que trabaja.

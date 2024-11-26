@@ -399,8 +399,8 @@ AS BEGIN
 		SET ciudad = s.idSucursal
 		FROM #aux a JOIN Sucursal.Sucursal s ON a.ciudad LIKE s.localidad COLLATE Modern_Spanish_CI_AI
 
-	INSERT INTO Venta.Venta (idEmpleado,idSucursal,fechaHoraVenta,tipoCliente)
-		SELECT Empleado,ciudad,cast(Fecha as datetime) + cast(Hora as datetime),tipoCliente 
+	INSERT INTO Venta.Venta (idEmpleado,idSucursal,fechaHoraVenta,tipoCliente,estadoVenta)
+		SELECT Empleado,ciudad,cast(Fecha as datetime) + cast(Hora as datetime),tipoCliente,'Pagado' 
 		FROM #aux a WHERE NOT EXISTS (
 										SELECT 1 FROM Venta.Venta v WHERE v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND 
 											v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
@@ -409,7 +409,7 @@ AS BEGIN
 	UPDATE #aux
 		SET Producto = p.idProducto
 		FROM #aux a JOIN Producto.Producto p ON a.Producto LIKE p.descripcionProducto COLLATE Modern_Spanish_CI_AI
-
+		Select * FROM Venta.Venta
 
 	EXEC Producto.pasajeDolarAPesos @valorDolar OUTPUT;
 
