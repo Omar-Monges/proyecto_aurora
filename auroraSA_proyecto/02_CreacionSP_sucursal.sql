@@ -60,7 +60,14 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarSucursal. La localidad es inválida.',16,2);
 		RETURN;
 	END
-	IF @cuit IS NOT NULL OR @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+
+	IF EXISTS(SELECT 1 FROM Sucursal.Sucursal WHERE localidad = @localidad COLLATE Modern_Spanish_CI_AI)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarSucursal. La localidad es inválida.',16,2);
+		RETURN;
+	END
+
+	IF @cuit IS NOT NULL AND @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarSucursal. El cuit es inválida.',16,2);
 		RETURN;
@@ -166,6 +173,13 @@ AS BEGIN
 		RAISERROR ('Error en el procedimiento almacenado modificarCargo.',16,11);
 		RETURN;
 	END
+
+	IF EXISTS (SELECT 1 FROM Sucursal.Cargo WHERE idCargo <> @idCargo AND nombreCargo LIKE @nombreCargo COLLATE Modern_Spanish_CI_AI)
+	BEGIN
+		RAISERROR ('Error en el procedimiento almacenado modificarCargo. El nombre del cargo al que se quiere modificar ya existe',16,11);
+		RETURN;
+	END
+
 	UPDATE Sucursal.Cargo
 		SET nombreCargo = COALESCE(@nombreCargo,nombreCargo)
 		WHERE idCargo = @idCargo;

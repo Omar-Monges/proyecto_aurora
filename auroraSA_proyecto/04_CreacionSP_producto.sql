@@ -32,6 +32,11 @@ AS BEGIN
 	DECLARE @altaProducto BIT = 1,
 		@idProducto INT,
 		@idClasificacion INT
+	IF EXISTS (SELECT 1 FROM Producto.Producto WHERE descripcionProducto = LTRIM(@descripcionProducto) AND productoActivo = 1)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarProducto. El producto ya se encuentra activo',16,5);
+		RETURN;
+	END
 
 	IF (@descripcionProducto IS NULL OR LEN(LTRIM(@descripcionProducto)) = 0)
 	BEGIN
@@ -41,6 +46,18 @@ AS BEGIN
 	IF (@clasificacion IS NULL OR LEN(LTRIM(@clasificacion)) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarProducto. La clasificacion del producto es incorrecta',16,5);
+		RETURN;
+	END
+
+	IF(@precioUnitario IS NULL OR @precioUnitario <= 0)
+	BEGIN 
+		RAISERROR('Error en el procedimiento almacenado agregarProducto. El precio unitario es incorrecto',16,5);
+		RETURN;
+	END
+
+	IF(@precioReferencia IS NOT NULL AND @precioReferencia <= 0)
+	BEGIN 
+		RAISERROR('Error en el procedimiento almacenado agregarProducto. El precio referencia es incorrecto',16,5);
 		RETURN;
 	END
 
@@ -58,10 +75,10 @@ AS BEGIN
 	BEGIN
 		SET @unidadReferencia = 'u';
 	END
-	SET @idProducto = (SELECT idProducto FROM Producto.Producto WHERE descripcionProducto = LTRIM(@descripcionProducto))
+	SET @idProducto = (SELECT idProducto FROM Producto.Producto WHERE descripcionProducto = LTRIM(@descripcionProducto) AND productoActivo = 0)
 	IF @idProducto IS NOT NULL
 	BEGIN
-		-- Prouducto ya existe -> lo damos de alta
+		-- Prouducto ya existe y se encuentra fuera de venta -> lo damos de alta y actualizamos sus datos
 		UPDATE Producto.Producto
 			SET productoActivo = @altaProducto,
 				precioUnitario = COALESCE(@precioUnitario, precioUnitario),
@@ -76,8 +93,8 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarProducto. La clasificacion no existe.',16,5);
 		RETURN;
 	END
-	INSERT INTO Producto.Producto (idClasificacion,descripcionProducto,precioUnitario,precioReferencia,unidadReferencia)
-		VALUES (@idClasificacion,@descripcionProducto,@precioUnitario,@precioReferencia,@unidadReferencia);
+	INSERT INTO Producto.Producto (idClasificacion,descripcionProducto,precioUnitario,precioReferencia,unidadReferencia,productoActivo)
+		VALUES (@idClasificacion,@descripcionProducto,@precioUnitario,@precioReferencia,@unidadReferencia,1);
 END
 GO
 --Procedimiento almacenado que permite modificar producto

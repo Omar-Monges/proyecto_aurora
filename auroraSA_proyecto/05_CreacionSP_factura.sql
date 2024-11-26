@@ -283,8 +283,7 @@ AS BEGIN
 	END
 END
 GO
---------------Eliminar Venta de forma logica
-
+--------------Cancelar Venta de forma logica
 CREATE OR ALTER PROCEDURE Venta.cancelarVenta(@idVenta INT = NULL)
 AS BEGIN
 	DECLARE @estado VARCHAR(10),

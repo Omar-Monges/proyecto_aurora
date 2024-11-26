@@ -240,8 +240,8 @@ BEGIN
 		idProducto INT,
 		cantidad INT,
 		subtotal DECIMAL(10,2),
-		CONSTRAINT PK_NotaDeCredito PRIMARY KEY(idNotaDeCredito,idProducto),
-		CONSTRAINT FK_NotaDeCredito_idProducto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
+		CONSTRAINT PK_DetalleNotaDeCredito PRIMARY KEY(idNotaDeCredito,idProducto),
+		CONSTRAINT FK_DetalleNotaDeCredito_idProducto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
 	)
 END
 GO
