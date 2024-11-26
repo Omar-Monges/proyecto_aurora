@@ -67,17 +67,17 @@
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
-        <FileNode Name="00_Configuracion.sql">
+        <FileNode Name="00_Creacion_Tablas.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>00_Configuracion.sql</FullPath>
+          <FullPath>00_Creacion_Tablas.sql</FullPath>
         </FileNode>
-        <FileNode Name="01_Creacion_Tablas.sql">
+        <FileNode Name="01_Configuracion.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>01_Creacion_Tablas.sql</FullPath>
+          <FullPath>01_Configuracion.sql</FullPath>
         </FileNode>
         <FileNode Name="02_CreacionSP_sucursal.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
@@ -103,59 +103,47 @@
           <AssociatedConnUserName />
           <FullPath>05_CreacionSP_factura.sql</FullPath>
         </FileNode>
+        <FileNode Name="06_SPViews_Direccion.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>06_SPViews_Direccion.sql</FullPath>
+        </FileNode>
         <FileNode Name="07_Importaciones.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>07_Importaciones.sql</FullPath>
         </FileNode>
-        <FileNode Name="08_importar_productos.sql">
+        <FileNode Name="08_Importaciones_Ejecuciones.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>08_importar_productos.sql</FullPath>
+          <FullPath>08_Importaciones_Ejecuciones.sql</FullPath>
         </FileNode>
-        <FileNode Name="09_importar_empleados.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-K4RCQ79\SQLEXPRESS:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>DESKTOP-K4RCQ79\SQLEXPRESS</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>09_importar_empleados.sql</FullPath>
-        </FileNode>
-        <FileNode Name="10_importar_ventas.sql">
+        <FileNode Name="09_Login.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>10_importar_ventas.sql</FullPath>
+          <FullPath>09_Login.sql</FullPath>
         </FileNode>
-        <FileNode Name="12_CreacionSPViews_Direccion.sql">
+        <FileNode Name="10_Encriptacion.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>12_CreacionSPViews_Direccion.sql</FullPath>
+          <FullPath>10_Encriptacion.sql</FullPath>
         </FileNode>
-        <FileNode Name="Encriptacion.sql">
+        <FileNode Name="11_reportes.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>Encriptacion.sql</FullPath>
+          <FullPath>11_reportes.sql</FullPath>
         </FileNode>
-        <FileNode Name="Login.sql">
+        <FileNode Name="12_Demo_SP.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>Login.sql</FullPath>
-        </FileNode>
-        <FileNode Name="LotesDePrueba1.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>LotesDePrueba1.sql</FullPath>
-        </FileNode>
-        <FileNode Name="reportes.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:DESKTOP-MV2FIBN\SQLEXPRESS:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>DESKTOP-MV2FIBN\SQLEXPRESS</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>reportes.sql</FullPath>
+          <FullPath>12_Demo_SP.sql</FullPath>
         </FileNode>
       </Items>
     </LogicalFolder>

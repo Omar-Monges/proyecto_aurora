@@ -1,3 +1,18 @@
+/*
+Deber谩 presentar un archivo .sql con el script de creaci贸n de los objetos
+correspondientes. En el mismo incluya un comentario donde conste este enunciado,
+la fecha de entrega, n煤mero de grupo, nombre de la materia, nombres y DNI de los
+alumnos. El mismo archivo SQL debe permitir la generaci贸n de los objetos
+consignados en esta entrega (debe admitir una ejecuci贸n completa sin fallos).
+
+
+Grupo: 19
+Comisi贸n
+
+
+
+
+*/
 ------------------------------------------------Creacion DB------------------------------------------------
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'Com2900G19')
 	CREATE DATABASE Com2900G19 COLLATE Modern_Spanish_CI_AS;
@@ -20,37 +35,21 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Em
 	EXEC('CREATE SCHEMA Empleado');
 GO
 --Esquema Factura
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Factura')
-	EXEC('CREATE SCHEMA Factura');
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Venta')
+	EXEC('CREATE SCHEMA Venta');
 GO
 --Esquema Producto
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Producto')
 	EXEC('CREATE SCHEMA Producto');
+--Esquema Importaci贸n
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Importacion')
+	EXEC('CREATE SCHEMA Importacion');
+GO
+--Esquema Seguridad
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Seguridad')
+	EXEC('CREATE SCHEMA Seguridad');
 GO
 ------------------------------------------------Tablas------------------------------------------------
----Esquema Direccion:
---		Tabla Direccion:
-/*
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Direccion')
-BEGIN
-	CREATE TABLE Direccion.Direccion
-	(
-		idDireccion INT IDENTITY(1,1),
-		calle VARCHAR(255)NOT NULL,
-		numeroDeCalle SMALLINT NOT NULL,--short en C
-		piso TINYINT NULL, --unsigned char en C
-		departamento TINYINT NULL,
-		codigoPostal VARCHAR(10) NOT NULL,
-		localidad VARCHAR(50) NOT NULL,
-		provincia VARCHAR(50) NOT NULL,
-		CONSTRAINT PK_Direccion PRIMARY KEY(IDDireccion),
-		CONSTRAINT CK_Direccion_NumeroDeCalle CHECK(numeroDeCalle >= 0),
-		CONSTRAINT CK_Empleado_Edificio CHECK((piso IS NULL AND departamento IS NULL) OR 
-											(piso IS NOT NULL AND departamento IS NOT NULL))
-	)--CK = Check
-END;
-GO
-*/
 --Esquema Sucursal:
 --		Tabla Sucursal
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Sucursal')
@@ -59,30 +58,17 @@ BEGIN
 	(
 		idSucursal INT IDENTITY(1,1),
 		telefono VARCHAR(9) NOT NULL,
-		direccion varchar(100),
-		codPostal varchar(10),
-		localidad varchar(50),
-		provincia varchar(45),
+		direccion VARCHAR(100),
+		localidad VARCHAR(30),
 		horario VARCHAR(100) NOT NULL,
-		sucursalActiva bit NOT NULL,
+		sucursalActiva BIT NOT NULL,
+		cuit CHAR(13) NOT NULL,
 		CONSTRAINT PK_Sucursal PRIMARY KEY(idSucursal),
-		CONSTRAINT CK_Sucursal_Telefono CHECK(telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]')
+		CONSTRAINT CK_Sucursal_Telefono CHECK(telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
+		CONSTRAINT CK_Sucursal_Cuit CHECK(cuit LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]')
 	)
 END;
 GO
---		Tabla Turnos de los Empleados
-/*
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Turno')
-BEGIN
-	CREATE TABLE Sucursal.Turno
-	(
-		idTurno INT IDENTITY(1,1),
-		nombreTurno VARCHAR(50) NOT NULL,
-		CONSTRAINT PK_Turno PRIMARY KEY(idTurno)
-	)
-END;
-GO
-*/
 --		Tabla Cargo de los Empleados
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Cargo')
 BEGIN
@@ -100,59 +86,56 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Emple
 BEGIN
 	CREATE TABLE Empleado.Empleado
 	(
-		legajo INT IDENTITY(257020,1),
-		dni char(8) NOT NULL,
-		cuil char(13) NOT NULL,
-		nombre VARCHAR(50) NOT NULL,
-		apellido VARCHAR(50) NOT NULL,
+		legajo INT,
+		dni CHAR(8) NOT NULL,
+		cuil CHAR(13) NOT NULL,
+		nombre VARCHAR(30) NOT NULL,
+		apellido VARCHAR(30) NOT NULL,
 		emailPersonal VARCHAR(60) NULL,
 		emailEmpresarial VARCHAR(60) NOT NULL,
-		direccion varchar(100),
-		localidad varchar(50),
-		provinica varchar(45),
-		codPostal varchar(10),
-		turno char(3),
-		empleadoActivo bit NOT NULL,
+		direccion VARCHAR(100) NOT NULL,
+		turno VARCHAR(20) NOT NULL,
+		empleadoActivo BIT NOT NULL,
 		idSucursal INT,
 		idCargo INT,
-		CONSTRAINT PK_Legajo PRIMARY KEY(legajo),
+		CONSTRAINT PK_Empleado_ID PRIMARY KEY(legajo),
 		CONSTRAINT FK_Empleado_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal),
 		CONSTRAINT FK_Empleado_Cargo FOREIGN KEY(idCargo) REFERENCES Sucursal.Cargo(idCargo),
 		CONSTRAINT CK_Empleado_DNI CHECK(dni LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
 		CONSTRAINT CK_Empleado_CUIL CHECK(cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
-		-- correccion antes CK_Empleado_EmailPersonal CHECK(emailPersonal like '%@%.com')
 		CONSTRAINT CK_Empleado_EmailPersonal CHECK(emailPersonal like '%_@__%.__%'),
-		-- CK_Empleado_EmailEmpresarial CHECK(emailEmpresarial LIKE '%@superA.com')
-		CONSTRAINT CK_Empleado_EmailEmpresarial CHECK(emailEmpresarial LIKE '%_@__%.__%'),
-		CONSTRAINT CK_Empleado_turno CHECK(turno in('T-T', 'T-M' ,'COM'))
+		CONSTRAINT CK_Empleado_EmailEmpresarial CHECK(emailEmpresarial LIKE '%_@superA.com')
 	)
 END;
 GO
 --Esquema Producto:
 --		Tabla Linea de Producto
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'TipoDeProducto')
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Clasificacion')
 BEGIN
-	CREATE TABLE Producto.TipoDeProducto
+	CREATE TABLE Producto.Clasificacion
 	(
-		idTipoDeProducto INT IDENTITY(1,1),
-		nombreTipoDeProducto VARCHAR(50) NOT NULL,
-		CONSTRAINT PK_TipoDeProducto PRIMARY KEY(idTipoDeProducto)
+		idClasificacion INT IDENTITY(1,1),
+		nombreClasificacion VARCHAR(40) NOT NULL,
+		lineaDeProducto VARCHAR(15) NOT NULL,
+		CONSTRAINT PK_TipoDeProducto PRIMARY KEY(idClasificacion)
 	)
 END;
 GO
+
 --		Tabla Producto
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Producto')
 BEGIN
 	CREATE TABLE Producto.Producto
 	(
 		idProducto INT IDENTITY(1,1),
-		idTipoDeProducto INT,
+		idClasificacion INT,
 		descripcionProducto VARCHAR(100) NOT NULL,
-		precioUnitario DECIMAL(15,2)  NOT NULL,
-		precioReferencia DECIMAL(15,2)  NULL,
+		precioUnitario DECIMAL(10,2)  NOT NULL,
+		precioReferencia DECIMAL(10,2)  NULL,
 		unidadReferencia VARCHAR(10) NULL,
+		productoActivo bit,
 		CONSTRAINT PK_Producto PRIMARY KEY(idProducto),
-		CONSTRAINT FK_Producto_TipoDeProducto FOREIGN KEY(idTipoDeProducto) REFERENCES Producto.TipoDeProducto(idTipoDeProducto),
+		CONSTRAINT FK_Producto_TipoDeProducto FOREIGN KEY(idClasificacion) REFERENCES Producto.Clasificacion(idClasificacion),
 		CONSTRAINT CK_Producto_PrecioUnitario CHECK(precioUnitario >= 0),
 		CONSTRAINT CK_Producto_PrecioReferencia CHECK(precioReferencia >= 0),
 		CONSTRAINT CK_Producto_Referencia CHECK((precioReferencia IS NOT NULL AND unidadReferencia IS NOT NULL) OR 
@@ -160,70 +143,115 @@ BEGIN
 	)
 END;
 GO
---Esquema Factura:
---		Tabla Medio De Pago de la Factura
+--Esquema Venta:
+--		Tabla Medio De Pago de la Venta
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'MedioDePago')
 BEGIN
-	CREATE TABLE Factura.MedioDePago
+	CREATE TABLE Venta.MedioDePago
 	(
 		idMedioDePago INT IDENTITY(1,1),
 		nombreMedioDePago VARCHAR(12) NOT NULL,
+		descripcion VARCHAR(25) NOT NULL,
+		medioDePagoActivo BIT,
 		CONSTRAINT PK_MedioDePago PRIMARY KEY(idMedioDePago)
 	);
 END;
 GO
-
---		Tabla Tipo Cliente
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'TipoCliente')
-BEGIN--Esto se agrega de nuevo
-	CREATE TABLE Factura.TipoCliente
-	(
-		idTipoCliente SMALLINT IDENTITY(1,1),
-		tipoCliente char(6), -- Solo dos tipos MEMBER / NORMAL
-	    genero char(1), -- Solo H / M
-		CONSTRAINT PK_TipoCliente_Factura PRIMARY KEY (idTipoCliente),
-		CONSTRAINT CK_TipoCliente CHECK(tipoCliente in ('MEMBER', 'NORMAL'))
-	)
-END
---		Tabla Factura
-
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Factura')
+--		Tabla venta
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Venta')
 BEGIN
-	CREATE TABLE Factura.Factura
+	CREATE TABLE Venta.Venta
 	(
-		idFactura INT IDENTITY(1,1),
-		tipoFactura CHAR NOT NULL,
-		idTipoCliente SMALLINT NOT NULL,
-		--genero VARCHAR(10) NOT NULL,--corregir <-- sacar esta wea
-		fechaHora SMALLDATETIME NOT NULL,
-		idMedioDepago INT,
+		idVenta INT IDENTITY(1,1),
 		legajo INT,
 		idSucursal INT,
-		identificadorDePago VARCHAR(23) NOT NULL,
-		CONSTRAINT PK_Factura PRIMARY KEY(idFactura),
-		CONSTRAINT FK_Factura_MedioDePago FOREIGN KEY(idMedioDePago) REFERENCES Factura.MedioDePago(idMedioDePago),
-		CONSTRAINT FK_Factura_LegajoEmpleado FOREIGN KEY(legajo) REFERENCES Empleado.Empleado(legajo),
-		CONSTRAINT FK_Factura_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal),
-		CONSTRAINT FK_Factura_tipoCliente FOREIGN KEY(idTipoCliente) REFERENCES Factura.TipoCliente(idTipoCliente),
-		CONSTRAINT CK_Factura_TipoFactura CHECK(tipoFactura IN ('A', 'B', 'C')),
-		--CONSTRAINT CK_Factura_Genero CHECK(genero IN('Male', 'Female')),
-		
---		CONSTRAINT CK_Factura_IdentificadorDepago CHECK() <-- 縎olo aceptan 3 tipos de pago? Efectivo,tarjeta y ewallet
+		fechaHoraVenta SMALLDATETIME,
+		cuilCliente CHAR(13),
+		tipoCliente CHAR(6),
+		estadoVenta VARCHAR(10),
+		CONSTRAINT PK_Venta PRIMARY KEY(idVenta),
+		CONSTRAINT FK_Venta_Empleado FOREIGN KEY(legajo) REFERENCES Empleado.Empleado(legajo),
+		CONSTRAINT FK_Venta_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal)
 	)
 END;
 GO
-
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'DetalleFactura')
-BEGIN--Esto se agrega de nuevo
-	CREATE TABLE Factura.DetalleFactura
+--		Tabla Factura
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Factura')
+BEGIN
+	CREATE TABLE Venta.Factura
 	(
-		idFactura INT,
-		idDetalleFactura INT IDENTITY(1,1),
-		precioUnitario DECIMAL(10,2) NOT NULL,
+		idFactura INT IDENTITY(1,1),
+		idVenta INT,
+		tipoFactura CHAR,
+		cuit CHAR(23),
+		--idTipoCliente SMALLINT NOT NULL,
+		fechaHora SMALLDATETIME,
+		idMedioDepago INT,
+		identificadorDePago VARCHAR(23),
+		estadoDeFactura VARCHAR(10),
+		totalConIva DECIMAL(11,2),
+		totalSinIva DECIMAL(11,2),
+		iva DECIMAL(3,2) DEFAULT 1.21,
+		CONSTRAINT PK_Factura PRIMARY KEY(idFactura),
+		CONSTRAINT FK_Factura_Venta FOREIGN KEY(idVenta) REFERENCES Venta.Venta(idVenta),
+		CONSTRAINT FK_Factura_MedioDePago FOREIGN KEY(idMedioDePago) REFERENCES Venta.MedioDePago(idMedioDePago),
+		--CONSTRAINT FK_Factura_tipoCliente FOREIGN KEY(idTipoCliente) REFERENCES Factura.TipoCliente(idTipoCliente),
+		CONSTRAINT CK_Factura_TipoFactura CHECK(tipoFactura IN ('A', 'B', 'C')),
+		--CORRECCION=> CONSTRAINT CK_Factura_Genero CHECK(genero IN('Male', 'Female')),
+		
+--		CONSTRAINT CK_Factura_IdentificadorDepago CHECK() <-- 驴Solo aceptan 3 tipos de pago? Efectivo,tarjeta y ewallet
+	)
+END;
+GO
+--		Tabla Detalle Venta
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'DetalleVenta')
+BEGIN
+	CREATE TABLE Venta.DetalleVenta
+	(
+		idDetalleVenta INT IDENTITY(1,1),
+		idVenta INT,
 		idProducto INT,
+		precioUnitario DECIMAL(10,2),
 		cantidad SMALLINT NOT NULL,
-		CONSTRAINT FK_DetalleFactura_Factura FOREIGN KEY(idFactura) REFERENCES Factura.Factura(idFactura),
-		CONSTRAINT CK_Factura_CantidadProductos CHECK(cantidad > 0)		,
-		CONSTRAINT FK_Factura_Producto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto)
+		subTotal DECIMAL(11,2),
+		CONSTRAINT PK_DetalleVenta PRIMARY KEY(idDetalleVenta, idVenta),
+		CONSTRAINT FK_DetalleVenta_Venta FOREIGN KEY(idVenta) REFERENCES Venta.Venta(idVenta),
+		CONSTRAINT FK_DetalleVenta_Producto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto)
+	)
+END;
+GO
+-- Table Nota de Credito
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'NotaDeCredito')
+BEGIN
+	CREATE TABLE Venta.NotaDeCredito
+	(
+		idNotaDeCredito INT IDENTITY(1,1),
+		idFactura INT,
+		legajoSupervisor INT,
+		razon VARCHAR(50),
+		fechaDeCreacion SMALLDATETIME NOT NULL,
+		montoTotalDeCredito DECIMAL(10,2),
+		activo CHAR, -- p 'pendiente', a 'activo'
+		CONSTRAINT PK_NotaDeCredito PRIMARY KEY(idNotaDeCredito),
+		CONSTRAINT FK_NotaDeCredito_idFactura FOREIGN KEY(idFactura) REFERENCES Venta.Factura(idFactura),
+		CONSTRAINT FK_NotaDeCredito_legajoSupervisor FOREIGN KEY(legajoSupervisor) REFERENCES Empleado.Empleado(legajo),
+		CONSTRAINT CK_NotaDeCredito_Monto CHECK(montoTotalDeCredito > 0)
 	)
 END
+GO
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'DetalleNotaDeCredito')
+BEGIN
+	CREATE TABLE Venta.DetalleNotaDeCredito
+	(
+		idNotaDeCredito INT,
+		idDetalleNotaDeCredito INT IDENTITY(1,1),
+		idProducto INT,
+		cantidad INT,
+		subtotal DECIMAL(10,2),
+		CONSTRAINT PK_DetalleNotaDeCredito PRIMARY KEY(idNotaDeCredito,idProducto),
+		CONSTRAINT FK_DetalleNotaDeCredito_idNotaDeCredito FOREIGN KEY(idNotaDeCredito) REFERENCES Venta.NotaDeCredito(idNotaDeCredito),
+		CONSTRAINT FK_DetalleNotaDeCredito_idProducto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
+	)
+END
+GO
+

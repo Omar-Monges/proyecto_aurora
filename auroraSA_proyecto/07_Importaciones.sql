@@ -147,8 +147,10 @@ AS BEGIN
 	INSERT INTO Sucursal.Cargo (nombreCargo)
 		SELECT DISTINCT a.cargo FROM #aux a
 			WHERE NOT EXISTS (
-								SELECT 1 FROM Sucursal.Cargo c WHERE a.cargo NOT LIKE c.nombreCargo COLLATE Modern_Spanish_CI_AI
-							)
+								SELECT 1 FROM Sucursal.Cargo c WHERE a.cargo LIKE c.nombreCargo COLLATE Modern_Spanish_CI_AI
+							) 
+	SELECT * FROM #aux
+	SELECT *  FROM Sucursal.Cargo
 	--Linkeamos los cargos con sus respectivos IDs
 	UPDATE #aux
 		SET cargo = idCargo
@@ -392,17 +394,17 @@ AS BEGIN
 		FROM Venta.MedioDePago m JOIN #aux a ON m.nombreMedioDePago LIKE a.MedioDePago COLLATE Modern_Spanish_CI_AI
 
 	UPDATE #aux
-		SET Empleado = e.idEmpleado
+		SET Empleado = e.legajo
 		FROM #aux a JOIN Empleado.Empleado e ON CAST(a.Empleado as int) = e.legajo;
 		
 	UPDATE #aux
 		SET ciudad = s.idSucursal
 		FROM #aux a JOIN Sucursal.Sucursal s ON a.ciudad LIKE s.localidad COLLATE Modern_Spanish_CI_AI
 
-	INSERT INTO Venta.Venta (idEmpleado,idSucursal,fechaHoraVenta,tipoCliente,estadoVenta)
+	INSERT INTO Venta.Venta (legajo,idSucursal,fechaHoraVenta,tipoCliente,estadoVenta)
 		SELECT Empleado,ciudad,cast(Fecha as datetime) + cast(Hora as datetime),tipoCliente,'Pagado' 
 		FROM #aux a WHERE NOT EXISTS (
-										SELECT 1 FROM Venta.Venta v WHERE v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND 
+										SELECT 1 FROM Venta.Venta v WHERE v.legajo = a.Empleado AND v.idSucursal = a.ciudad AND 
 											v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
 									)
 		
@@ -416,13 +418,13 @@ AS BEGIN
 	INSERT INTO Venta.DetalleVenta (idVenta,idProducto,precioUnitario,cantidad,subtotal)
 		SELECT v.idVenta,a.Producto,a.Precio,a.Cantidad,(a.Precio * @valorDolar) * a.Cantidad 
 		FROM #aux a JOIN Venta.Venta v 
-			ON v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
+			ON v.legajo = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
 		WHERE NOT EXISTS(SELECT 1 FROM Venta.DetalleVenta dv WHERE dv.idVenta = v.idVenta AND dv.idProducto = a.Producto)
 	
 	INSERT INTO Venta.Factura (idVenta,tipoFactura,fechaHora,idMedioDepago,identificadorDePago,estadoDeFactura,totalConIva,totalSinIva,cuit)
 		SELECT v.idVenta,a.tipoFactura,v.fechaHoraVenta,a.MedioDePago,a.IdentificadorDePago,'Pagado',@iva* (a.Cantidad * (a.Precio * @valorDolar)),a.Cantidad * (a.Precio * @valorDolar),s.cuit 
 		FROM #aux a JOIN Venta.Venta v 
-			ON v.idEmpleado = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
+			ON v.legajo = a.Empleado AND v.idSucursal = a.ciudad AND v.fechaHoraVenta = CAST(Fecha as smalldatetime) + CAST(Hora as smalldatetime)
 			JOIN Sucursal.Sucursal s ON v.idSucursal = s.idSucursal
 		WHERE NOT EXISTS(
 			SELECT 1 FROM Venta.Factura f WHERE f.idVenta = v.idVenta
@@ -431,32 +433,3 @@ AS BEGIN
 	DROP TABLE #aux
 END
 GO
-
-/*
-
-SELECT * FROM Empleado.Empleado
-
-SELECT * FROM Producto.Producto
-
-SELECT * FROM Producto.Clasificacion
-
-SELECT * FROM Venta.Venta
-
-SELECT * FROM Venta.DetalleVenta
-
-SELECT * FROM Venta.Factura
-
-SELECT * FROM Venta.MedioDePago
-*/
-
-/*
-SELECT * FROM Empleado.Empleado
-exec Importacion.ArchComplementario_importarSucursal 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-exec Importacion.ArchComplementario_importarMedioDePago 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-exec Importacion.ArchComplementario_importarEmpleado 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-exec Importacion.ImportarClasificacionProducto 'C:\Users\joela\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-exec Importacion.importarCatalogoCSV 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\'
-exec Importacion.importarAccesoriosElectronicos 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Electronic accessories.xlsx'
-exec Importacion.importarProductosImportados 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
-exec Importacion.importar_Ventas 'C:\Users\joela\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
-*/
