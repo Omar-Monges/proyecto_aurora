@@ -80,7 +80,6 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Emple
 BEGIN
 	CREATE TABLE Empleado.Empleado
 	(
-		idEmpleado INT IDENTITY(1,1),
 		legajo INT,
 		dni CHAR(8) NOT NULL,
 		cuil CHAR(13) NOT NULL,
@@ -93,7 +92,7 @@ BEGIN
 		empleadoActivo BIT NOT NULL,
 		idSucursal INT,
 		idCargo INT,
-		CONSTRAINT PK_Empleado_ID PRIMARY KEY(idEmpleado),
+		CONSTRAINT PK_Empleado_ID PRIMARY KEY(legajo),
 		CONSTRAINT FK_Empleado_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal),
 		CONSTRAINT FK_Empleado_Cargo FOREIGN KEY(idCargo) REFERENCES Sucursal.Cargo(idCargo),
 		CONSTRAINT CK_Empleado_DNI CHECK(dni LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
@@ -156,14 +155,14 @@ BEGIN
 	CREATE TABLE Venta.Venta
 	(
 		idVenta INT IDENTITY(1,1),
-		idEmpleado INT,
+		legajo INT,
 		idSucursal INT,
 		fechaHoraVenta SMALLDATETIME,
 		cuilCliente CHAR(13),
 		tipoCliente CHAR(6),
 		estadoVenta VARCHAR(10),
 		CONSTRAINT PK_Venta PRIMARY KEY(idVenta),
-		CONSTRAINT FK_Venta_Empleado FOREIGN KEY(idEmpleado) REFERENCES Empleado.Empleado(idEmpleado),
+		CONSTRAINT FK_Venta_Empleado FOREIGN KEY(legajo) REFERENCES Empleado.Empleado(legajo),
 		CONSTRAINT FK_Venta_Sucursal FOREIGN KEY(idSucursal) REFERENCES Sucursal.Sucursal(idSucursal)
 	)
 END;
@@ -220,14 +219,29 @@ BEGIN
 	(
 		idNotaDeCredito INT IDENTITY(1,1),
 		idFactura INT,
-		idEmpleadoSupervisor INT,
+		legajoSupervisor INT,
 		razon VARCHAR(50),
 		fechaDeCreacion SMALLDATETIME NOT NULL,
 		montoTotalDeCredito DECIMAL(10,2),
 		CONSTRAINT PK_NotaDeCredito PRIMARY KEY(idNotaDeCredito),
 		CONSTRAINT FK_NotaDeCredito_idFactura FOREIGN KEY(idFactura) REFERENCES Venta.Factura(idFactura),
-		CONSTRAINT FK_NotaDeCredito_idEmpleadoSupervisor FOREIGN KEY(idEmpleadoSupervisor) REFERENCES Empleado.Empleado(idEmpleado),
+		CONSTRAINT FK_NotaDeCredito_legajoSupervisor FOREIGN KEY(legajoSupervisor) REFERENCES Empleado.Empleado(legajo),
 		CONSTRAINT CK_NotaDeCredito_Monto CHECK(montoTotalDeCredito > 0)
 	)
 END
 GO
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'DetalleNotaDeCredito')
+BEGIN
+	CREATE TABLE Venta.DetalleNotaDeCredito
+	(
+		idNotaDeCredito INT,
+		idDetalleNotaDeCredito INT IDENTITY(1,1),
+		idProducto INT,
+		cantidad INT,
+		subtotal DECIMAL(10,2),
+		CONSTRAINT PK_NotaDeCredito PRIMARY KEY(idNotaDeCredito,idProducto),
+		CONSTRAINT FK_NotaDeCredito_idProducto FOREIGN KEY(idProducto) REFERENCES Producto.Producto(idProducto),
+	)
+END
+GO
+

@@ -68,6 +68,7 @@ SELECT CURRENT_USER QuienSoyChe
 EXECUTE AS USER = 'GerenteUsuario'
 SELECT * FROM Empleado.verDatosDeEmpleados
 SELECT * FROM Producto.Producto
+EXEC Empleado.eliminarEmpleado 18
 --Probamos si el supervisor puede acceder al procedimiento almacenado Venta.CrearNotaDeCredito y hacer un select de Venta.NotaDeCredito
 EXECUTE AS USER = 'SupervisorUsuario'
 EXEC Venta.crearNotaDeCredito @idFactura=7,@idSupervisor=13,@montoDeCredito=150,@laRazon = 'Devolucion'

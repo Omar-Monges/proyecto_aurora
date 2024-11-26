@@ -117,8 +117,10 @@ BEGIN
 		SET @genero = 'M';
 END
 GO
+
+use Com2900G19
 --Agregar un Empleado
---Drop Empleado.agregarEmpleado
+--		Drop Empleado.agregarEmpleado
 CREATE OR ALTER PROCEDURE Empleado.agregarEmpleado (
 								@dni VARCHAR(8)				= NULL, @nombre VARCHAR(50)			= NULL,
 								@apellido VARCHAR(50)		= NULL, @sexo CHAR					= NULL,
