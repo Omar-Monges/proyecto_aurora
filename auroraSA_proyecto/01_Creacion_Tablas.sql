@@ -39,6 +39,10 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Pr
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Importacion')
 	EXEC('CREATE SCHEMA Importacion');
 GO
+--Esquema Seguridad
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'Seguridad')
+	EXEC('CREATE SCHEMA Seguridad');
+GO
 ------------------------------------------------Tablas------------------------------------------------
 --Esquema Sucursal:
 --		Tabla Sucursal
