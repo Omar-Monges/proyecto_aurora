@@ -78,7 +78,8 @@ GO
 CREATE OR ALTER PROCEDURE Sucursal.modificarSucursal (
 									@idSucursal INT			= NULL,@telefono VARCHAR(9)	= NULL,
 									@horario VARCHAR(100)	= NULL,@dire VARCHAR(100)	= NULL,
-									@localidad VARCHAR(30)	= NULL,@cuit CHAR(13) = NULL
+									@localidad VARCHAR(30)	= NULL,@cuit CHAR(13) = NULL,
+									@sucursalActiva BIT = NULL
 												)
 AS BEGIN
 	DECLARE @direccion VARCHAR(100) = NULL;
@@ -99,19 +100,19 @@ AS BEGIN
 		RETURN;
 	END
 
-
 	UPDATE Sucursal.Sucursal
 		SET telefono = COALESCE(@telefono,telefono),
 			horario = COALESCE(@horario,horario),
 			direccion = COALESCE(@dire, direccion),
-			localidad = COALESCE(@localidad, localidad)
+			localidad = COALESCE(@localidad, localidad),
+			sucursalActiva = COALESCE(@sucursalActiva,sucursalActiva)
 		WHERE idSucursal = @idSucursal;
 
 END;
 GO
 --	Procedimiento almacenado que permite eliminar una sucursal.
---	DROP PROCEDURE Sucursal.eliminarSucursal
-CREATE OR ALTER PROCEDURE Sucursal.eliminarSucursal (@idSucursal INT)
+--		DROP PROCEDURE Sucursal.darDeBajaSucursal
+CREATE OR ALTER PROCEDURE Sucursal.darDeBajaSucursal (@idSucursal INT)
 AS BEGIN
 	UPDATE Sucursal.Sucursal
 		SET sucursalActiva = 0
@@ -124,18 +125,20 @@ GO
 CREATE OR ALTER VIEW Sucursal.verDatosDeSucursales AS
 	SELECT s.idSucursal,s.horario,s.telefono,s.direccion,s.localidad
 		FROM Sucursal.Sucursal s
+		WHERE sucursalActiva = 1
 GO 
 --	Vista que permite ver a los empleados de cada sucursal
---	DROP VIEW Sucursal.verEmpleadosDeCadaSucursal
---	SELECT * FROM Sucursal.verEmpleadosDeCadaSucursal
+--		DROP VIEW Sucursal.verEmpleadosDeCadaSucursal
+--		SELECT * FROM Sucursal.verEmpleadosDeCadaSucursal
 CREATE OR ALTER VIEW Sucursal.verEmpleadosDeCadaSucursal AS
 	SELECT s.idSucursal,e.legajo,e.cuil,e.apellido,e.nombre 
 		FROM Sucursal.Sucursal s JOIN Empleado.Empleado e
-		ON s.idSucursal = e.idSucursal;
+		ON s.idSucursal = e.idSucursal
+		WHERE s.sucursalActiva = 1 AND e.empleadoActivo = 1;
 GO
 --Tabla Cargo
---	Procedimiento almacenado que permite agregar un cargo
---	DROP PROCEDURE Sucursal.agregarCargo
+--		Procedimiento almacenado que permite agregar un cargo
+--		DROP PROCEDURE Sucursal.agregarCargo
 CREATE OR ALTER PROCEDURE Sucursal.agregarCargo (@nombreCargo VARCHAR(30))
 AS BEGIN
 
@@ -169,7 +172,7 @@ AS BEGIN
 END
 GO
 --	Procedimiento almacenado que permite eliminar un cargo
---	DROP PROCEDURE Sucursal.eliminarCargo
+--		DROP PROCEDURE Sucursal.eliminarCargo
 CREATE OR ALTER PROCEDURE Sucursal.eliminarCargo (@idCargo INT)
 AS BEGIN
 	UPDATE Empleado.Empleado
@@ -186,12 +189,6 @@ GO
 CREATE OR ALTER VIEW Sucursal.verCargoDeEmpleados AS
 	SELECT e.idEmpleado, e.legajo,e.cuil,e.apellido,e.nombre,c.nombreCargo 
 		FROM Empleado.Empleado e JOIN Sucursal.Cargo c
-		ON e.idCargo = c.idCargo;
-GO
---	Vista que permite ver los turnos que tiene cada empleado.
---	DROP VIEW Sucursal.verTurnosDeEmpleados
---	SELECT * FROM Sucursal.verTurnosDeEmpleados
-CREATE OR ALTER VIEW Sucursal.verTurnosDeEmpleados AS
-	SELECT e.idEmpleado, e.legajo,e.cuil,e.apellido,e.nombre,e.turno 
-			FROM Empleado.Empleado e
+		ON e.idCargo = c.idCargo
+		WHERE e.empleadoActivo = 1
 GO

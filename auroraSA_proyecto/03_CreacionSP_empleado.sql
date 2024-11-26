@@ -23,11 +23,12 @@ GO
 
 ------------------------------------------------Esquema Empleado------------------------------------------------
 --Calcula el cuil de un empleado mediante un DNI y el Sexo:
---	DROP FUNCTION Empleado.calcularCUIL		<--- ¡Primero borrar el procedure agregarEmpleado!
---	DROP PROCEDURE Empleado.agregarEmpleado
---	PRINT Empleado.calcularCUIL('42781944','M')		<--- Salida esperada: 20-42781944-3
--- PRINT Empleado.calcularCUIL('93113720', 'F')
--- PRINT Empleado.calcularCUIL('36508254','F')
+--		DROP FUNCTION Empleado.calcularCUIL		<--- ¡Primero borrar el procedure agregarEmpleado!
+--		DROP PROCEDURE Empleado.agregarEmpleado
+--		PRINT Empleado.calcularCUIL('42781944','M')		<--- Salida esperada: 20-42781944-3
+--		PRINT Empleado.calcularCUIL('93113720', 'F')
+--		PRINT Empleado.calcularCUIL('36508254','F')
+--		PRINT Empleado.calcularCUIL('19349173','M')
 CREATE OR ALTER FUNCTION Empleado.calcularCUIL (@dni CHAR(8), @sexo CHAR)
 RETURNS VARCHAR(13)
 AS BEGIN
@@ -70,7 +71,6 @@ GO
 	DECLARE @genero CHAR;DECLARE @nombre VARCHAR(30) = 'Joel',@dni CHAR(8)='42781944';EXEC Empleado.ObtenerGenero @nombre,@genero OUTPUT;SELECT Empleado.calcularCuil(@dni,@genero)
 
 */
-
 CREATE OR ALTER PROCEDURE Empleado.obtenerGenero (@nombre VARCHAR(30), @genero CHAR OUTPUT)
 AS
 BEGIN
@@ -118,10 +118,10 @@ BEGIN
 END
 GO
 
-use Com2900G19
 --Agregar un Empleado
 --		Drop Empleado.agregarEmpleado
 CREATE OR ALTER PROCEDURE Empleado.agregarEmpleado (
+								@legajo INT,
 								@dni VARCHAR(8)				= NULL, @nombre VARCHAR(50)			= NULL,
 								@apellido VARCHAR(50)		= NULL, @sexo CHAR					= NULL,
 								@emailPersonal VARCHAR(100)	= NULL, @emailEmpresa VARCHAR(100)	= NULL,
@@ -130,6 +130,13 @@ CREATE OR ALTER PROCEDURE Empleado.agregarEmpleado (
 													)
 AS BEGIN
 	DECLARE @cuil VARCHAR(13), @altaEmpleado BIT = 1, @idCargo INT
+
+	IF EXISTS (SELECT 1 FROM Empleado.Empleado WHERE legajo = @legajo)
+	BEGIN
+		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El empleado ya existe.',16,1);
+		RETURN;
+	END
+
 	IF(@dni IS NULL OR @dni NOT LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. EL formato del DNI es inválido.',16,1);
@@ -178,7 +185,6 @@ AS BEGIN
 	END
 	IF NOT EXISTS(SELECT 1 FROM Sucursal.Cargo WHERE nombreCargo LIKE @cargo)
 	BEGIN
-		--El cargo no existe lo damos de alta?
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El cargo es inválido.',16,1);
 		RETURN;
 	END
@@ -187,10 +193,9 @@ AS BEGIN
 
 	SET @emailEmpresa = REPLACE(@emailEmpresa,' ','');
 	SET @emailPersonal = REPLACE(@emailPersonal,' ','');
-	IF EXISTS(SELECT 1 FROM Empleado.Empleado WHERE dni = @dni AND cuil = @cuil AND empleadoActivo = 0)
+	IF EXISTS(SELECT 1 FROM Empleado.Empleado WHERE legajo = @legajo AND empleadoActivo = 0)
 	BEGIN
 		-- El empleado existe y lo damos de alta
-		--DECLARE @id INT = (SELECT idEmpleado FROM Empleado.Empleado WHERE dni = @dni AND cuil = @cuil)
 		UPDATE Empleado.Empleado
 			SET empleadoActivo = @altaEmpleado,
 				nombre = @nombre,
@@ -201,23 +206,22 @@ AS BEGIN
 				idSucursal = @idSucursal,
 				turno = @turno,
 				idCargo = @idCargo
-		WHERE dni = @dni AND cuil = @cuil
+		WHERE legajo = @legajo
 		RETURN
 	END
-	INSERT INTO Empleado.Empleado(dni,nombre,apellido,emailPersonal,emailEmpresarial,direccion,idSucursal,turno,idCargo,cuil, empleadoActivo) 
-							VALUES(@dni,@nombre,@apellido,@emailPersonal,@emailEmpresa,@direccion,@idSucursal,@turno,@idCargo,@cuil, @altaEmpleado);
-
+	INSERT INTO Empleado.Empleado(legajo,dni,nombre,apellido,emailPersonal,emailEmpresarial,direccion,idSucursal,turno,idCargo,cuil, empleadoActivo) 
+							VALUES(@legajo,@dni,@nombre,@apellido,@emailPersonal,@emailEmpresa,@direccion,@idSucursal,@turno,@idCargo,@cuil, @altaEmpleado);
 END;
 GO
 ---Modificar Empleado
 --DROP PROCEDURE Empleado.modificarEmpleado
 CREATE OR ALTER PROCEDURE Empleado.modificarEmpleado(
-									@idEmpleado INT				= NULL, @legajo INT						= NULL,
+									@legajo INT				= NULL,
 									@nombre VARCHAR(255)		= NULL, @apellido VARCHAR(255)			= NULL,
 									@emailPersonal VARCHAR(60)	= NULL, @emailEmpresa VARCHAR(60)		= NULL,
 									@turno CHAR(20)				= NULL, @idCargo INT					= NULL,
 									@direccion VARCHAR(100)		= NULL, @dni VARCHAR(8)					= NULL,
-									@idSucursal INT				= NULL
+									@idSucursal INT				= NULL, @empleadoActivo BIT = NULL
 													)
 AS BEGIN
 	IF(@dni IS NOT NULL AND @dni NOT LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
@@ -241,12 +245,13 @@ AS BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El formato de la direccion es inválido.',16,1);
 		RETURN;
 	END
-	IF (@emailPersonal IS NOT NULL AND LEN(LTRIM(@emailPersonal)) = 0)
+
+	IF (@emailPersonal IS NOT NULL AND @emailPersonal like '%_@__%.__%')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email personal es inválido.',16,1);
 		RETURN;
 	END
-	IF (@emailEmpresa IS NOT NULL AND LEN(LTRIM(@emailEmpresa)) = 0)
+	IF (@emailEmpresa IS NOT NULL AND @emailEmpresa LIKE '%_@superA.com')
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarEmpleado. El email de empresa es inválido.',16,1);
 		RETURN;
@@ -269,21 +274,13 @@ AS BEGIN
 				emailEmpresarial = COALESCE(@emailEmpresa,emailEmpresarial),
 				turno = COALESCE(@turno,turno),
 				idCargo = COALESCE(@idCargo,idCargo),
-				direccion = COALESCE(@direccion,direccion)
-	WHERE legajo = @legajo OR idEmpleado = @idEmpleado;
+				direccion = COALESCE(@direccion,direccion),
+				empleadoActivo = COALESCE(@empleadoActivo,empleadoActivo)
+	WHERE legajo = @legajo
 END
 GO
---Eliminar Empleado
---DROP PROCEDURE Empleado.eliminarEmpleado
-CREATE OR ALTER PROCEDURE Empleado.eliminarEmpleado(@idEmpleado INT)
-AS BEGIN
-	UPDATE Empleado.Empleado
-		SET empleadoActivo = 0
-		WHERE idEmpleado = @idEmpleado
-END
-GO
---DROP PROCEDURE Empleado.eliminarEmpleadoConLegajo
-CREATE OR ALTER PROCEDURE Empleado.eliminarEmpleadoConLegajo(@legajo INT)
+--DROP PROCEDURE Empleado.darDeBajaEmpleado
+CREATE OR ALTER PROCEDURE Empleado.darDeBajaEmpleado(@legajo INT)
 AS BEGIN
 	UPDATE Empleado.Empleado
 		SET empleadoActivo = 0
@@ -294,16 +291,17 @@ GO
 --DROP VIEW Empleado.verEmpleados
 --		SELECT * FROM Empleado.verDatosDeEmpleados
 CREATE OR ALTER VIEW Empleado.verDatosDeEmpleados AS
-	SELECT idEmpleado, legajo, cuil, apellido, nombre, emailEmpresarial, e.direccion, turno,
+	SELECT legajo, cuil, apellido, nombre, emailEmpresarial, e.direccion, turno,
 			e.idSucursal, c.nombreCargo
-	from Empleado.Empleado e
-	INNER JOIN Sucursal.Cargo c on c.idCargo = e.idCargo
-	WHERE e.empleadoActivo = 1
+		from Empleado.Empleado e
+			INNER JOIN Sucursal.Cargo c on c.idCargo = e.idCargo
+		WHERE e.empleadoActivo = 1
 GO
 --Ver los datos personales de los empleados
 --DROP VIEW Empleado.verDatosPersonalesDeEmpleados
 --		SELECT * FROM Empleado.verDatosPersonalesDeEmpleados
 CREATE OR ALTER VIEW Empleado.verDatosPersonalesDeEmpleados AS
-	SELECT idEmpleado, legajo, apellido, nombre, cuil, emailEmpresarial, emailPersonal, direccion
-	FROM Empleado.Empleado
+	SELECT legajo, legajo, apellido, nombre, cuil, emailEmpresarial, emailPersonal, direccion
+		FROM Empleado.Empleado
+		WHERE empleadoActivo = 1
 GO

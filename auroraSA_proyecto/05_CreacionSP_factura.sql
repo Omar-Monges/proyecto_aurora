@@ -1,8 +1,4 @@
-
-IF EXISTS (SELECT * FROM sys.databases WHERE name = 'Com2900G19')
-	USE Com2900G19
-ELSE
-	RAISERROR('Este script está diseñado para que se ejecute despues del script de la creacion de tablas y esquemas.',20,1);
+USE Com2900G19
 GO
 /*
 	Solo una linea de caja :(
@@ -32,12 +28,12 @@ GO
 	
 --Esquema Venta
 CREATE OR ALTER PROCEDURE Venta.crearVenta(
-								@idEmpleado INT	= NULL,
+								@legajo INT	= NULL,
 								@idSucursal INT	= NULL,
 								@idVentaRecien INT OUTPUT
 								)
 AS BEGIN
-	IF @idEmpleado IS NULL OR NOT EXISTS(SELECT 1 FROM Empleado.Empleado WHERE idEmpleado = @idEmpleado)
+	IF @legajo IS NULL OR NOT EXISTS(SELECT 1 FROM Empleado.Empleado WHERE legajo = @legajo)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado crearVenta. Empleado no valido',16,14);
 		RETURN;
@@ -48,10 +44,9 @@ AS BEGIN
 		RETURN;
 	END
 	DECLARE @fechaHora SMALLDATETIME = GETDATE()
-
-
-	INSERT Venta.Venta(idEmpleado, idSucursal, fechaHoraVenta, estadoVenta)
-	SELECT @idEmpleado, @idSucursal, @fechaHora, 'Pendiente'
+	
+	INSERT Venta.Venta(legajo, idSucursal, fechaHoraVenta, estadoVenta)
+	SELECT @legajo, @idSucursal, @fechaHora, 'Pendiente'
 	-- obtenemos el idVenta para crear la factura
 	SET @idVentaRecien = SCOPE_IDENTITY()
 END
@@ -180,7 +175,6 @@ AS BEGIN
 	WHERE idVenta = @idVenta AND idProducto = @idProducto
 END
 GO
-
 --------------Cerrar Venta-----------------------------
 
 CREATE OR ALTER PROCEDURE Venta.cerrarVenta(
@@ -366,7 +360,7 @@ AS BEGIN
 		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. La factura ya tiene una NOTA DE CREDITO.',16,12);
 		RETURN;
 	END
-	IF @idSupervisor IS NULL OR NOT EXISTS(SELECT 1 FROM Empleado.Empleado WHERE idEmpleado = @idSupervisor AND empleadoActivo = 1)
+	IF @idSupervisor IS NULL OR NOT EXISTS(SELECT 1 FROM Empleado.Empleado WHERE legajo = @idSupervisor AND empleadoActivo = 1)
 	BEGIN
 		RAISERROR ('Error en el procedimiento almacenado crearNotaDeCredito. Supervisor no Valido.',16,12);
 		RETURN;
@@ -383,7 +377,7 @@ AS BEGIN
 		RETURN;
 	END
 	-- Creamos la nota de credito
-	INSERT INTO Venta.NotaDeCredito(idEmpleadoSupervisor, idFactura, fechaDeCreacion, montoTotalDeCredito,razon)
+	INSERT INTO Venta.NotaDeCredito(legajoSupervisor, idFactura, fechaDeCreacion, montoTotalDeCredito,razon)
 	SELECT @idSupervisor, @idFactura, GETDATE(), @montoDeCredito, @laRazon
 END
 GO

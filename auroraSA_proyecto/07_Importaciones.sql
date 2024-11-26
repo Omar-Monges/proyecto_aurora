@@ -139,20 +139,9 @@ AS BEGIN
 		SET emailPersonal = REPLACE(emailPersonal,@espacio,''),
 			emailEmpresarial = REPLACE(emailEmpresarial,@espacio,'');
 	--Obtenemos el CUIL
-	DECLARE cursorEmpleado CURSOR FOR
-		 SELECT dni,nombre FROM #aux
-	OPEN cursorEmpleado
-	FETCH NEXT FROM cursorEmpleado INTO @DNI,@nombre
-	WHILE(@@FETCH_STATUS = 0)
-	BEGIn
-		EXEC Empleado.obtenerGenero @nombre,@genero OUTPUT
-		UPDATE #aux
-			SET cuil = Empleado.calcularCUIL(@dni,@genero)
-			WHERE dni = @DNI
-		FETCH NEXT FROM cursorEmpleado INTO @DNI,@nombre
-	END
-	CLOSE cursorEmpleado
-	DEALLOCATE cursorEmpleado
+	UPDATE #aux
+		SET cuil = '20-22222222-3'
+		WHERE cuil IS NULL
 
 	--Agregamos los cargos en la tabla Cargo
 	INSERT INTO Sucursal.Cargo (nombreCargo)
@@ -471,5 +460,3 @@ exec Importacion.importarAccesoriosElectronicos 'C:\Users\joela\Downloads\TP_int
 exec Importacion.importarProductosImportados 'C:\Users\joela\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
 exec Importacion.importar_Ventas 'C:\Users\joela\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
 */
-
-SELECT * FROM Empleado.Empleado --20/0

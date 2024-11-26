@@ -22,7 +22,7 @@ GO
 ------------------------------------------------Producto------------------------------------------------
 --Tabla Producto
 --Procedimiento almacenado que permite agregar un producto
---DROP PROCEDURE Sucursal.
+--		DROP PROCEDURE Producto.agregarProducto
 CREATE OR ALTER PROCEDURE Producto.agregarProducto (
 							@clasificacion VARCHAR(35)		= NULL,@descripcionProducto VARCHAR(100)= NULL,
 							@precioUnitario DECIMAL(10,2)	= NULL,@precioReferencia DECIMAL(10,2)	= NULL,
@@ -61,7 +61,7 @@ AS BEGIN
 	SET @idProducto = (SELECT idProducto FROM Producto.Producto WHERE descripcionProducto = LTRIM(@descripcionProducto))
 	IF @idProducto IS NOT NULL
 	BEGIN
-		-- Prouducto ya existe lo damos de alta
+		-- Prouducto ya existe -> lo damos de alta
 		UPDATE Producto.Producto
 			SET productoActivo = @altaProducto,
 				precioUnitario = COALESCE(@precioUnitario, precioUnitario),
@@ -73,21 +73,20 @@ AS BEGIN
 	SET @idClasificacion = (SELECT idClasificacion FROM Producto.Clasificacion WHERE nombreClasificacion = @clasificacion)
 	IF @idClasificacion IS NULL
 	BEGIN
-		--Clasificacion no existe / llamamos a una primitiva? / hacemos insercion directa?
 		RAISERROR('Error en el procedimiento almacenado agregarProducto. La clasificacion no existe.',16,5);
 		RETURN;
 	END
 	INSERT INTO Producto.Producto (idClasificacion,descripcionProducto,precioUnitario,precioReferencia,unidadReferencia)
 		VALUES (@idClasificacion,@descripcionProducto,@precioUnitario,@precioReferencia,@unidadReferencia);
-
 END
 GO
 --Procedimiento almacenado que permite modificar producto
---DROP PROCEDURE Producto.modificarProducto
+--		DROP PROCEDURE Producto.modificarProducto
 CREATE OR ALTER PROCEDURE Producto.modificarProducto (
 						@idProducto INT						= NULL,@idClasificacion INT				= NULL,
 						@descripcionProducto VARCHAR(100)	= NULL,@precioUnitario DECIMAL(10,2)	= NULL,
-						@precioReferencia DECIMAL(10,2)		= NULL,@unidadReferencia VARCHAR(10)	= NULL
+						@precioReferencia DECIMAL(10,2)		= NULL,@unidadReferencia VARCHAR(10)	= NULL,
+						@productoActivo BIT = NULL
 												)
 AS BEGIN
 	IF @idProducto IS NULL
@@ -124,14 +123,14 @@ AS BEGIN
 			descripcionProducto = COALESCE(@descripcionProducto,descripcionProducto),
 			precioUnitario = COALESCE(@precioUnitario,precioUnitario),
 			precioReferencia = COALESCE(@precioReferencia,precioReferencia),
-			unidadReferencia = COALESCE(@unidadReferencia,unidadReferencia)
+			unidadReferencia = COALESCE(@unidadReferencia,unidadReferencia),
+			productoActivo = COALESCE(@productoActivo,productoActivo)
 		WHERE idProducto = @idProducto;
-
 END
 GO
 --Procedimiento almacenado que permite eliminar producto
---DROP PROCEDURE Producto.eliminarProducto
-CREATE OR ALTER PROCEDURE Producto.eliminarProducto (@idProducto INT = NULL)
+--		DROP PROCEDURE Producto.darDeBajaProducto
+CREATE OR ALTER PROCEDURE Producto.darDeBajaProducto (@idProducto INT = NULL)
 AS BEGIN
 	DECLARE @bajaProducto BIT = 0
 	IF @idProducto IS NULL
@@ -139,22 +138,16 @@ AS BEGIN
 		RAISERROR ('Error en el procedimiento almacenado modificarProducto. El ID del producto es inválido.',16,12);
 		RETURN;
 	END
-	--UPDATE Factura.DetalleFactura
-	--	SET idProducto = NULL
-	--	WHERE idProducto = @idProducto
-
-	--DELETE FROM Producto.Producto
-	--	WHERE idProducto = @idProducto;
 	UPDATE Producto.Producto
 		SET productoActivo = @bajaProducto
-	WHERE idProducto = @idProducto
+	WHERE idProducto = @idProducto --Si el @idProducto no se encuentra en la tabla, el UPDATE no hace nada
 END
 GO
 --	Vista para ver los productos junto a su categoría
---	DROP VIEW Producto.VerListadoDeProductos
---	SELECT * FROM Producto.VerListadoDeProductos
+--			DROP VIEW Producto.VerListadoDeProductos
+--			SELECT * FROM Producto.VerListadoDeProductos
 CREATE OR ALTER VIEW Producto.verListadoDeProductos AS
-	SELECT idProducto,precioUnitario,precioReferencia,unidadReferencia,t.nombreClasificacion, t.lineaDeProducto
+	SELECT idProducto,p.descripcionProducto,precioUnitario,precioReferencia,unidadReferencia,t.nombreClasificacion, t.lineaDeProducto
 		FROM Producto.Producto p INNER JOIN Producto.Clasificacion t ON p.idClasificacion = t.idClasificacion;
 GO
 --	Chequear en https://dolarito.ar
@@ -197,7 +190,6 @@ GO
 --	DROP PROCEDURE Producto.AgregarTipoDeProducto;
 CREATE OR ALTER PROCEDURE Producto.agregarClasificacion (@nombreClasificacion VARCHAR(35) = NULL, @linea VARCHAR(15) = NULL)
 AS BEGIN
-
 	IF(@nombreClasificacion IS NULL OR LEN(LTRIM(@nombreClasificacion)) = 0)
 	BEGIN
 		RAISERROR('Error en el procedimiento almacenado agregarTipoDeProducto. El nombre de la clasificacion es inválida.',16,6);
@@ -206,7 +198,7 @@ AS BEGIN
 	IF EXISTS (SELECT 1 FROM Producto.Clasificacion 
 				WHERE nombreClasificacion LIKE @nombreClasificacion)
 	BEGIN
-		RAISERROR('Error en el procedimiento almacenado "AgregarTipoDeProducto". La Clasificacion ya se encuentra ingresada.',16,1);
+		RAISERROR('Error en el procedimiento almacenado "AgregarTipoDeProducto". La Clasificacion ya se encuentra ingresada.',16,6);
 		RETURN;
 	END
 	

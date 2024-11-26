@@ -17,7 +17,7 @@ AS BEGIN
 			WHERE MONTH(fechaHora) = @mes AND YEAR(fechaHora) = @anio
 	)
 	SELECT * FROM VentasXDiaCTE
-	FOR XML RAW('Resumen_Diario'),ROOT('XD'),ELEMENTS XSINIL;
+	FOR XML RAW('Resumen_Diario'),ROOT('ReporteMensual'),ELEMENTS XSINIL;
 END
 GO
 /*
@@ -27,7 +27,7 @@ CREATE OR ALTER PROCEDURE Venta.reporteXTurnos
 AS BEGIN
 	WITH VentaXTurnoEmpl AS
 	(
-		SELECT v.idVenta,e.turno FROM Venta.Venta v JOIN Empleado.Empleado e ON v.idEmpleado = e.idEmpleado
+		SELECT v.idVenta,e.turno FROM Venta.Venta v JOIN Empleado.Empleado e ON v.legajo = e.legajo
 	),FacturaXTurnoEmpl (Turno,Mes,TotalFacturado)AS
 	(
 		SELECT DISTINCT v.turno,DATENAME(MONTH,f.fechaHora),SUM(f.totalConIva) OVER(PARTITION BY v.turno,MONTH(f.fechaHora)) 
