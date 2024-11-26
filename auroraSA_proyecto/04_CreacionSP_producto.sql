@@ -272,3 +272,4 @@ AS BEGIN
 		WHERE idClasificacion = @idClasificacion;
 END;
 GO
+
